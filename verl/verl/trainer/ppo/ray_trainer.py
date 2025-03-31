@@ -568,13 +568,26 @@ class RayPPOTrainer(object):
         """
         from verl.utils.tracking import Tracking
         from omegaconf import OmegaConf
+        import os
+        import re
 
         logger = Tracking(project_name=self.config.trainer.project_name,
                           experiment_name=self.config.trainer.experiment_name,
                           default_backend=self.config.trainer.logger,
                           config=OmegaConf.to_container(self.config, resolve=True))
 
+        # Initialize global_steps to 0 by default
         self.global_steps = 0
+        
+        # Check if we're resuming from a checkpoint by examining the model path
+        model_path = self.config.actor_rollout_ref.model.path
+        if isinstance(model_path, str) and "global_step_" in model_path:
+            # Extract step number from checkpoint path (e.g., .../global_step_220)
+            step_match = re.search(r'global_step_(\d+)', model_path)
+            if step_match:
+                # Set global_steps to the step from the checkpoint
+                self.global_steps = int(step_match.group(1))
+                print(f"Resuming training from checkpoint at step {self.global_steps}")
 
         # perform validation before training
         if self.val_reward_fn is not None and self.config.trainer.get('val_before_train', True):
@@ -584,7 +597,7 @@ class RayPPOTrainer(object):
             if self.config.trainer.get('val_only', False):
                 return
 
-        # we start from step 1
+        # Increment the step for the first training iteration
         self.global_steps += 1
 
         for _ in range(self.config.trainer.total_epochs):
