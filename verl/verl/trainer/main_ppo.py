@@ -17,6 +17,7 @@ Note that we don't combine the main with ray_trainer as ray_trainer is used by o
 
 from verl import DataProto
 import torch
+import yaml
 from verl.utils.reward_score import gsm8k, math
 from verl.trainer.ppo.ray_trainer import RayPPOTrainer
 
@@ -117,13 +118,7 @@ def main(config):
     if not ray.is_initialized():
         # this is for local ray cluster
         ray.init(
-            runtime_env={
-                "env_vars": {
-                    "TOKENIZERS_PARALLELISM": "true",
-                    "NCCL_DEBUG": "WARN",
-                },
-                "excludes": [".git"],
-            }
+            runtime_env=yaml.safe_load(open("verl/verl/trainer/runtime_env.yaml", "r"))
         )
 
     ray.get(main_task.remote(config))
