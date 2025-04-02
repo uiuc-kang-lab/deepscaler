@@ -8,8 +8,4 @@ from deepscaler.rewards.math_utils.utils import (
     grade_answer_mathd,
 )
 
-__all__ = [
-    "extract_answer",
-    "grade_answer_sympy",
-    "grade_answer_mathd"
-]
+__all__ = ["extract_answer", "grade_answer_sympy", "grade_answer_mathd"]

@@ -6,11 +6,12 @@ to evaluate model responses for various problem types, including math and coding
 from dataclasses import dataclass, field
 from enum import Enum
 
+
 @dataclass
 class RewardConfig:
     # Use LLM as ORM to evaluate correctness.
     use_math_orm: bool = False
-    
+
     # General reward constants.
     correct_reward: float = 1.0
     incorrect_reward: float = -1.0
@@ -27,9 +28,10 @@ class RewardType(Enum):
         CODE (str): Represents a coding-related problem type.
         UNK (str): Represents an unknown or unclassified problem type.
     """
-    MATH = 'MATH'
-    CODE = 'CODE'
-    UNK = 'UNK'
+
+    MATH = "MATH"
+    CODE = "CODE"
+    UNK = "UNK"
 
 
 @dataclass
@@ -44,6 +46,7 @@ class RewardInput:
             - For math problems: This may include the ground truth answer.
             - For coding problems: This may include unit tests to validate the solution.
     """
+
     problem: str
     model_response: str
     problem_type: RewardType = RewardType.UNK
@@ -58,6 +61,7 @@ class RewardOutput:
         reward (float): The computed reward value based on the evaluation of the model's response.
         is_correct (bool): A boolean flag indicating whether the model's response is deemed correct.
     """
+
     reward: float
     is_correct: bool
 
@@ -69,6 +73,7 @@ class RewardFn:
     The __call__ method must be overridden to provide the functionality for evaluating
     the input and returning the corresponding reward output.
     """
+
     def __init__(self, config: RewardConfig):
         self.config = config
 

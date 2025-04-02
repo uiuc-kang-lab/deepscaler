@@ -12,7 +12,7 @@ Exports:
 from deepscaler.data.dataset_types import TrainDataset, TestDataset, Dataset
 
 __all__ = [
-    'TrainDataset',
-    'TestDataset', 
-    'Dataset',
+    "TrainDataset",
+    "TestDataset",
+    "Dataset",
 ]

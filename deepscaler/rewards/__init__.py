@@ -2,4 +2,4 @@
 
 from .reward_types import RewardConfig, RewardFn, RewardInput, RewardOutput, RewardType
 
-__all__ = ['RewardFn', 'RewardInput', 'RewardOutput', 'RewardType']
+__all__ = ["RewardFn", "RewardInput", "RewardOutput", "RewardType"]

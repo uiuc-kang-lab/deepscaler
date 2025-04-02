@@ -50,14 +50,22 @@ from vllm import SamplingParams
 def _pre_process_inputs(pad_token_id, prompt_token_ids: torch.Tensor) -> List[int]:
     # remove the left padding in the prompt token_id
     # pad_token_id = self.llm_engine.tokenizer.pad_token_id if self.llm_engine.tokenizer.pad_token_id is not None else self.llm_engine.tokenizer.eos_token_id
-    non_pad_index = torch.nonzero(prompt_token_ids != pad_token_id, as_tuple=False)[0][0]
+    non_pad_index = torch.nonzero(prompt_token_ids != pad_token_id, as_tuple=False)[0][
+        0
+    ]
     token_ids = prompt_token_ids[non_pad_index:].tolist()
     return token_ids
 
 
 class vLLMRollout(BaseRollout):
-
-    def __init__(self, actor_module: nn.Module, config: DictConfig, tokenizer, model_hf_config, **kwargs):
+    def __init__(
+        self,
+        actor_module: nn.Module,
+        config: DictConfig,
+        tokenizer,
+        model_hf_config,
+        **kwargs,
+    ):
         """A vLLM rollout. It requires the module is supported by the vllm.
 
         Args:
@@ -72,41 +80,50 @@ class vLLMRollout(BaseRollout):
         self.config = config
         self.tokenizer = tokenizer
         self.model_hf_config = model_hf_config
-        assert not (not config.enforce_eager and config.free_cache_engine), \
-            "disable CUDA graph (enforce_eager = False) if free cache engine"
+        assert not (
+            not config.enforce_eager and config.free_cache_engine
+        ), "disable CUDA graph (enforce_eager = False) if free cache engine"
 
-        tensor_parallel_size = self.config.get('tensor_model_parallel_size', 1)
-        assert tensor_parallel_size <= torch.distributed.get_world_size(), \
-            "tensor parallel size should be less than or equal to the world size"
+        tensor_parallel_size = self.config.get("tensor_model_parallel_size", 1)
+        assert (
+            tensor_parallel_size <= torch.distributed.get_world_size()
+        ), "tensor parallel size should be less than or equal to the world size"
         self.tensor_parallel_size = tensor_parallel_size
-        
-        max_num_batched_tokens = self.config.get('max_num_batched_tokens', 8192)
-        
-        if kwargs.get('train_tp', None) is not None:
+
+        max_num_batched_tokens = self.config.get("max_num_batched_tokens", 8192)
+
+        if kwargs.get("train_tp", None) is not None:
             # deployed with megatron
             import os
-            os.environ['CUDA_TIMER_STREAM_KAFKA_ENABLE'] = '0'
-            os.environ['MEGATRON_IMPORT_TIMERS'] = '0'
-            train_tp = kwargs.get('train_tp', None)
-            num_tp_per_train_tp = train_tp // tensor_parallel_size
-            if vllm_version in ('0.4.2', '0.5.4', '0.6.3'):
-                vllm_ps.initialize_parallel_state(tensor_model_parallel_size=tensor_parallel_size,
-                                                  num_tp_per_train_tp=num_tp_per_train_tp)
 
-        assert model_hf_config.max_position_embeddings >= config.prompt_length + config.response_length, \
-            "model context length should be greater than total sequence length"
-        self.inference_engine = LLM(actor_module,
-                                    tokenizer=tokenizer,
-                                    model_hf_config=model_hf_config,
-                                    tensor_parallel_size=tensor_parallel_size,
-                                    dtype=config.dtype,
-                                    enforce_eager=config.enforce_eager,
-                                    gpu_memory_utilization=config.gpu_memory_utilization,
-                                    skip_tokenizer_init=False,
-                                    max_model_len=config.prompt_length + config.response_length,
-                                    max_num_batched_tokens=max_num_batched_tokens,
-                                    enable_chunked_prefill=config.enable_chunked_prefill,
-                                    load_format=config.load_format)
+            os.environ["CUDA_TIMER_STREAM_KAFKA_ENABLE"] = "0"
+            os.environ["MEGATRON_IMPORT_TIMERS"] = "0"
+            train_tp = kwargs.get("train_tp", None)
+            num_tp_per_train_tp = train_tp // tensor_parallel_size
+            if vllm_version in ("0.4.2", "0.5.4", "0.6.3"):
+                vllm_ps.initialize_parallel_state(
+                    tensor_model_parallel_size=tensor_parallel_size,
+                    num_tp_per_train_tp=num_tp_per_train_tp,
+                )
+
+        assert (
+            model_hf_config.max_position_embeddings
+            >= config.prompt_length + config.response_length
+        ), "model context length should be greater than total sequence length"
+        self.inference_engine = LLM(
+            actor_module,
+            tokenizer=tokenizer,
+            model_hf_config=model_hf_config,
+            tensor_parallel_size=tensor_parallel_size,
+            dtype=config.dtype,
+            enforce_eager=config.enforce_eager,
+            gpu_memory_utilization=config.gpu_memory_utilization,
+            skip_tokenizer_init=False,
+            max_model_len=config.prompt_length + config.response_length,
+            max_num_batched_tokens=max_num_batched_tokens,
+            enable_chunked_prefill=config.enable_chunked_prefill,
+            load_format=config.load_format,
+        )
         # Offload vllm model to reduce peak memory usage
         self.inference_engine.offload_model_weights()
 
@@ -117,8 +134,8 @@ class vLLMRollout(BaseRollout):
         )
 
         # we may detokenize the result all together later
-        if vllm_version in ('0.4.2', '0.5.4', '0.6.3'):
-            kwargs['detokenize'] = False
+        if vllm_version in ("0.4.2", "0.5.4", "0.6.3"):
+            kwargs["detokenize"] = False
 
         # supporting adding any sampling params from the config file
         for k in config.keys():
@@ -147,7 +164,9 @@ class vLLMRollout(BaseRollout):
             setattr(self.sampling_params, key, value)
 
     @torch.no_grad()
-    def generate_sequences(self, prompts: DataProto, max_retries: int = 1e9, **kwargs) -> DataProto:
+    def generate_sequences(
+        self, prompts: DataProto, max_retries: int = 1e9, **kwargs
+    ) -> DataProto:
         """Generate sequences using vLLM engine with retry logic for failures.
 
         Args:
@@ -175,10 +194,10 @@ class vLLMRollout(BaseRollout):
                     self.inference_engine.init_cache_engine()
 
                 # Extract input tensors from prompt batch
-                idx = prompts.batch['input_ids']
-                attention_mask = prompts.batch['attention_mask']
-                position_ids = prompts.batch['position_ids']
-                eos_token_id = prompts.meta_info['eos_token_id']
+                idx = prompts.batch["input_ids"]
+                attention_mask = prompts.batch["attention_mask"]
+                position_ids = prompts.batch["position_ids"]
+                eos_token_id = prompts.meta_info["eos_token_id"]
                 batch_size = idx.size(0)
 
                 # Pre-process input token ids
@@ -188,25 +207,26 @@ class vLLMRollout(BaseRollout):
                 ]
 
                 # Configure sampling parameters
-                do_sample = prompts.meta_info.get('do_sample', True)
+                do_sample = prompts.meta_info.get("do_sample", True)
                 if not do_sample:
                     kwargs = {
-                        'best_of': 1,
-                        'top_p': 1.0,
-                        'top_k': -1,
-                        'min_p': 0.0,
-                        'temperature': 0,
-                        'n': 1
+                        "best_of": 1,
+                        "top_p": 1.0,
+                        "top_k": -1,
+                        "min_p": 0.0,
+                        "temperature": 0,
+                        "n": 1,
                     }
-                if prompts.meta_info.get('val_temperature', None):
-                    kwargs['temperature'] = prompts.meta_info['val_temperature']
+                if prompts.meta_info.get("val_temperature", None):
+                    kwargs["temperature"] = prompts.meta_info["val_temperature"]
                 # Generate sequences
                 with self.update_sampling_params(**kwargs):
                     output = self.inference_engine.generate(
                         prompts=None,
                         sampling_params=self.sampling_params,
                         prompt_token_ids=idx_list,
-                        use_tqdm=False)
+                        use_tqdm=False,
+                    )
 
                 # Process outputs
                 response = output[0].to(idx.device)
@@ -215,17 +235,19 @@ class vLLMRollout(BaseRollout):
                 # Pad sequences if needed
                 if response.shape[1] < self.config.response_length:
                     response = pad_sequence_to_length(
-                        response, self.config.response_length, self.pad_token_id)
+                        response, self.config.response_length, self.pad_token_id
+                    )
                     log_probs = pad_sequence_to_length(
-                        log_probs, self.config.response_length, self.pad_token_id)
+                        log_probs, self.config.response_length, self.pad_token_id
+                    )
 
                 # Handle multiple samples per prompt
                 if self.config.n > 1 and do_sample:
                     idx = idx.repeat_interleave(self.config.n, dim=0)
                     attention_mask = attention_mask.repeat_interleave(
-                        self.config.n, dim=0)
-                    position_ids = position_ids.repeat_interleave(
-                        self.config.n, dim=0)
+                        self.config.n, dim=0
+                    )
+                    position_ids = position_ids.repeat_interleave(self.config.n, dim=0)
                     batch_size = batch_size * self.config.n
 
                 # Concatenate prompt and response
@@ -234,30 +256,32 @@ class vLLMRollout(BaseRollout):
                 # Create position IDs and attention mask for full sequence
                 response_length = response.size(1)
                 delta_position_id = torch.arange(
-                    1, response_length + 1, device=position_ids.device)
-                delta_position_id = delta_position_id.unsqueeze(0).repeat(
-                    batch_size, 1)
+                    1, response_length + 1, device=position_ids.device
+                )
+                delta_position_id = delta_position_id.unsqueeze(0).repeat(batch_size, 1)
 
                 response_position_ids = position_ids[:, -1:] + delta_position_id
-                position_ids = torch.cat([position_ids, response_position_ids],
-                                       dim=-1)
+                position_ids = torch.cat([position_ids, response_position_ids], dim=-1)
                 response_attention_mask = get_eos_mask(
                     response_id=response,
                     eos_token=eos_token_id,
-                    dtype=attention_mask.dtype)
+                    dtype=attention_mask.dtype,
+                )
                 attention_mask = torch.cat(
-                    (attention_mask, response_attention_mask), dim=-1)
+                    (attention_mask, response_attention_mask), dim=-1
+                )
 
                 # Construct output batch
                 batch = TensorDict(
                     {
-                        'prompts': idx,
-                        'responses': response,
-                        'input_ids': seq,
-                        'attention_mask': attention_mask,
-                        'position_ids': position_ids
+                        "prompts": idx,
+                        "responses": response,
+                        "input_ids": seq,
+                        "attention_mask": attention_mask,
+                        "position_ids": position_ids,
                     },
-                    batch_size=batch_size)
+                    batch_size=batch_size,
+                )
 
                 # Free cache if configured
                 if self.config.free_cache_engine:
@@ -272,7 +296,7 @@ class vLLMRollout(BaseRollout):
 
                 # Clean up and restart engine
                 torch.cuda.empty_cache()
-                if hasattr(self.inference_engine, 'free_cache_engine'):
+                if hasattr(self.inference_engine, "free_cache_engine"):
                     self.inference_engine.free_cache_engine()
                 del self.inference_engine
 
@@ -286,13 +310,13 @@ class vLLMRollout(BaseRollout):
                     enforce_eager=self.config.enforce_eager,
                     gpu_memory_utilization=self.config.gpu_memory_utilization,
                     skip_tokenizer_init=False,
-                    max_model_len=self.config.prompt_length +
-                    self.config.response_length,
-                    load_format=self.config.load_format)
+                    max_model_len=self.config.prompt_length
+                    + self.config.response_length,
+                    load_format=self.config.load_format,
+                )
                 print("vLLM is ready to roll!")
 
                 if attempt < max_retries - 1:
                     continue
 
-        raise RuntimeError(
-            f"Failed to generate sequences after {max_retries} attempts")
+        raise RuntimeError(f"Failed to generate sequences after {max_retries} attempts")

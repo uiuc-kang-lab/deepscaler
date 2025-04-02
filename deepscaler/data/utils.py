@@ -52,5 +52,5 @@ def load_dataset(dataset: Dataset) -> List[Dict[str, Any]]:
         raise ValueError(f"Error loading dataset: {exc}") from exc
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     load_dataset(TrainDataset.NUMINA_OLYMPIAD)

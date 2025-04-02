@@ -17,6 +17,7 @@ from deepscaler.data.dataset_types import (
 )
 from deepscaler.data.utils import load_dataset
 
+
 def difficulty_fn(idx, entry):
     """
     1) Extract problem and solution text.
@@ -28,8 +29,8 @@ def difficulty_fn(idx, entry):
     #     # Skip if already computed
     #     return idx, entry
 
-    problem_text = entry.get('problem', '')
-    solution_text = entry.get('solution', '')
+    problem_text = entry.get("problem", "")
+    solution_text = entry.get("solution", "")
 
     # Pass@8 difficulty calls
     output_list = call_gemini_llm(
@@ -39,10 +40,7 @@ def difficulty_fn(idx, entry):
         temperature=0.7,
     )
     # (Use .lower() to catch both uppercase/lowercase errors)
-    output_list = [
-        o for o in output_list
-        if 'error' not in o.lower()
-    ]
+    output_list = [o for o in output_list if "error" not in o.lower()]
 
     # Attempt to parse each string as float
     values = []
@@ -59,9 +57,9 @@ def difficulty_fn(idx, entry):
         difficulty = sum(values) / len(values)
     else:
         difficulty = None
-        print('Failed parsing all difficulties: ', output_list)
+        print("Failed parsing all difficulties: ", output_list)
 
-    entry['difficulty'] = difficulty
+    entry["difficulty"] = difficulty
     return idx, entry
 
 
@@ -85,8 +83,7 @@ def batch_difficulty(dataset: str, split: str):
     # Use ThreadPoolExecutor to process concurrently
     with concurrent.futures.ThreadPoolExecutor(max_workers=24) as executor:
         futures = [
-            executor.submit(difficulty_fn, i, entry)
-            for i, entry in enumerate(data)
+            executor.submit(difficulty_fn, i, entry) for i, entry in enumerate(data)
         ]
         done_count = 0
         for future in tqdm(as_completed(futures), total=len(futures)):
@@ -96,27 +93,31 @@ def batch_difficulty(dataset: str, split: str):
 
             # Periodically save partial results
             if done_count % 5000 == 0:
-                print(f"Processed {done_count} entries so far. Saving partial results...")
-                with open(file_path, "w", encoding='utf-8') as f:
+                print(
+                    f"Processed {done_count} entries so far. Saving partial results..."
+                )
+                with open(file_path, "w", encoding="utf-8") as f:
                     json.dump(results, f, indent=2, ensure_ascii=False)
     # Save final results
-    with open(file_path, "w", encoding='utf-8') as f:
+    with open(file_path, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
     print(f"Finished processing {len(results)} entries. Results saved to {file_path}.")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Label approximate difficulty for math problems.")
+    parser = argparse.ArgumentParser(
+        description="Label approximate difficulty for math problems."
+    )
     parser.add_argument(
         "--dataset",
         required=True,
-        help="Name of the dataset (e.g. 'AIME', 'AMC', 'OMNI_MATH', 'OLYMPIAD', 'MATH')"
+        help="Name of the dataset (e.g. 'AIME', 'AMC', 'OMNI_MATH', 'OLYMPIAD', 'MATH')",
     )
     parser.add_argument(
         "--split",
         required=True,
         choices=["train", "test"],
-        help="Which split to use: 'train' or 'test'"
+        help="Which split to use: 'train' or 'test'",
     )
     args = parser.parse_args()
     batch_difficulty(args.dataset, args.split)

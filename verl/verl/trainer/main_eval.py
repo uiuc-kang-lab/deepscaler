@@ -27,13 +27,13 @@ from deepscaler.rewards.math_reward import deepscaler_reward_fn
 
 
 def select_reward_fn(data_source):
-    if data_source == 'lighteval/MATH':
+    if data_source == "lighteval/MATH":
         return math.compute_score
     else:
         return deepscaler_reward_fn
 
 
-@hydra.main(config_path='config', config_name='evaluation', version_base=None)
+@hydra.main(config_path="config", config_name="evaluation", version_base=None)
 def main(config):
     local_path = copy_local_path_from_hdfs(config.data.path)
     dataset = pd.read_parquet(local_path)
@@ -53,7 +53,7 @@ def main(config):
         prompt = prompts[i]
         reward_data = reward_model_data[i]
         reward_fn = select_reward_fn(data_source)
-        ground_truth = reward_data['ground_truth']
+        ground_truth = reward_data["ground_truth"]
         score_lst = []
         for r in response_lst:
             score = reward_fn(r, ground_truth)
@@ -63,9 +63,9 @@ def main(config):
         n_samples = len(response_lst)
         if max_score == 1:
             passes += 1
-    print(f'Pass@1, Avg: {np.mean(total_scores)}')
-    print(f'Pass@{n_samples}: {passes / total}')
+    print(f"Pass@1, Avg: {np.mean(total_scores)}")
+    print(f"Pass@{n_samples}: {passes / total}")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

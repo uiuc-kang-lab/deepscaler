@@ -14,7 +14,7 @@ from vertexai.generative_models import (
     GenerationConfig,
     GenerativeModel,
     HarmBlockThreshold,
-    HarmCategory
+    HarmCategory,
 )
 from sentence_transformers import SentenceTransformer, util
 
@@ -27,7 +27,7 @@ def call_oai_rm_llm(
     n: int = 1,
     temperature: float = 1.0,
     model_id: str = OAI_RM_MODEL,
-    retry_count: int = 1000000000
+    retry_count: int = 1000000000,
 ) -> Union[str, List[str]]:
     """Call OpenAI API with retry logic.
 
@@ -52,7 +52,7 @@ def call_oai_rm_llm(
                 model=model_id,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": prompt},
                 ],
                 temperature=temperature,
                 n=n,
@@ -80,7 +80,7 @@ def call_gemini_llm(
     project_id: str = GCP_PROJECT_ID,
     location: str = GCP_LOCATION,
     model_id: str = GEMINI_MODEL,
-    retry_count: int = 1000000000
+    retry_count: int = 1000000000,
 ) -> Union[str, List[str]]:
     """Call Gemini LLM on Vertex AI with retry logic.
 
@@ -130,7 +130,7 @@ def call_gemini_llm(
                 safety_settings=[
                     SafetySetting(category=h, threshold=HarmBlockThreshold.BLOCK_NONE)
                     for h in harm_categories
-                ]
+                ],
             )
             break
         except Exception as exc:
@@ -159,7 +159,9 @@ def call_gemini_llm(
 class RAG:
     """Retrieval Augmented Generation implementation using sentence transformers."""
 
-    def __init__(self, docs: List[str], model: str = "sentence-transformers/all-MiniLM-L6-v2"):
+    def __init__(
+        self, docs: List[str], model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    ):
         """Initialize RAG with documents and model.
 
         Args:
@@ -186,8 +188,5 @@ class RAG:
 
         results = []
         for score, idx in zip(top_results.values, top_results.indices):
-            results.append({
-                'score': score,
-                'text': self.docs[int(idx)]
-            })
+            results.append({"score": score, "text": self.docs[int(idx)]})
         return results
