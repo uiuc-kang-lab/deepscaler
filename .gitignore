@@ -177,4 +177,6 @@ cython_debug/
 **/outputs/
 **/wandb/
 **/checkpoints/
+data
 data/*
+
