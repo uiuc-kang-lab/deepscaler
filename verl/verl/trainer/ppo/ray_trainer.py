@@ -603,6 +603,14 @@ class RayPPOTrainer(object):
         for _ in range(self.config.trainer.total_epochs):
             
             for batch_dict in self.train_dataloader:
+                # Check if we've reached max_steps
+                if (
+                    self.config.trainer.get("max_steps") is not None
+                    and self.global_steps >= self.config.trainer.max_steps
+                ):
+                    print(f"Reached max_steps={self.config.trainer.max_steps}, stopping training")
+                    return
+
                 batch: DataProto = DataProto.from_single_dict(batch_dict)
 
                 metrics = {}

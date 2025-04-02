@@ -152,6 +152,7 @@ trainer:
   rejection_sample_multiplier: 2 # Multiple the training batch size by this factor to account for rejection sampling reduction.
   total_epochs: 30
   total_training_steps: null
+  max_steps: null # If set, will stop training after this many steps
   project_name: verl_examples
   experiment_name: gsm8k
   logger: [ 'console', 'wandb' ]
