@@ -46,6 +46,7 @@ class SFTDataset(Dataset):
         response_dict_keys=None,
         max_length=1024,
         truncation="error",
+        system_prompt=None,
     ):
         assert truncation in ["error", "left", "right"]
         self.truncation = truncation
@@ -66,6 +67,7 @@ class SFTDataset(Dataset):
         )
         self.prompt_dict_keys = [] if not prompt_dict_keys else prompt_dict_keys
         self.response_dict_keys = [] if not response_dict_keys else response_dict_keys
+        self.system_prompt = system_prompt
 
         self.max_length = max_length
 
@@ -95,7 +97,13 @@ class SFTDataset(Dataset):
             dataframe = pd.read_parquet(parquet_file)
             dataframes.append(dataframe)
         self.dataframe = pd.concat(dataframes)
-        self.prompts = self.dataframe[self.prompt_key]
+        
+        # Fix: Handle single column case properly
+        if len(self.prompt_key) == 1:
+            self.prompts = self.dataframe[self.prompt_key[0]]
+        else:
+            self.prompts = self.dataframe[self.prompt_key]
+        
         for key in self.prompt_dict_keys:
             # type(x): pandas.core.series.Series
             # type(x[0]): numpy.ndarray
@@ -108,7 +116,13 @@ class SFTDataset(Dataset):
                 print(f"self.prompts={self.prompts}")
                 raise
         self.prompts = self.prompts.tolist()
-        self.responses = self.dataframe[self.response_key]
+        
+        # Fix: Handle single column case properly for responses too
+        if len(self.response_key) == 1:
+            self.responses = self.dataframe[self.response_key[0]]
+        else:
+            self.responses = self.dataframe[self.response_key]
+        
         for key in self.response_dict_keys:
             try:
                 self.responses = self.responses.apply(
@@ -129,7 +143,10 @@ class SFTDataset(Dataset):
         response = self.responses[item]
 
         # apply chat template
-        prompt_chat = [{"role": "user", "content": prompt}]
+        prompt_chat = []
+        if self.system_prompt:
+            prompt_chat.append({"role": "system", "content": self.system_prompt})
+        prompt_chat.append({"role": "user", "content": prompt})
 
         # string
         prompt_chat_str = tokenizer.apply_chat_template(

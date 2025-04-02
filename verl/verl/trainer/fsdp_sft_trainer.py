@@ -19,6 +19,7 @@ TODO(zhangchi.usc1992)
 """
 
 import os
+import time
 
 os.environ["NCCL_DEBUG"] = "WARN"
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
@@ -52,6 +53,7 @@ from verl.utils.fsdp_utils import (
 from verl.utils.dataset import SFTDataset
 from verl.utils.fs import copy_local_path_from_hdfs
 from verl.utils.tracking import Tracking
+from deepscaler.utils import get_system_prompt
 
 from torch.distributed.device_mesh import DeviceMesh
 
@@ -110,6 +112,10 @@ class FSDPSFTTrainer(object):
     def _build_dataloader(self):
         config = self.config
         # build dataset
+        system_prompt = None
+        if hasattr(config.model, "system_prompt"):
+            system_prompt = get_system_prompt(config.model.system_prompt)
+            
         self.train_dataset = SFTDataset(
             parquet_files=config.data.train_files,
             tokenizer=self.tokenizer,
@@ -119,6 +125,7 @@ class FSDPSFTTrainer(object):
             response_dict_keys=config.data.get("response_dict_keys", None),
             max_length=config.data.max_length,
             truncation=config.data.truncation,
+            system_prompt=system_prompt,
         )
         self.val_dataset = SFTDataset(
             parquet_files=config.data.val_files,
@@ -129,6 +136,7 @@ class FSDPSFTTrainer(object):
             response_dict_keys=config.data.get("response_dict_keys", None),
             max_length=config.data.max_length,
             truncation=config.data.truncation,
+            system_prompt=system_prompt,
         )
 
         # build dataloader
@@ -309,6 +317,7 @@ class FSDPSFTTrainer(object):
         return loss
 
     def training_step(self, batch: TensorDict):
+        step_start_time = time.time()
         self.fsdp_model.train()
 
         log_gpu_memory_usage("Before optimizer zero_grad", logger=logger)
@@ -342,7 +351,15 @@ class FSDPSFTTrainer(object):
 
         step_loss = torch.tensor(step_loss).cuda()
         torch.distributed.all_reduce(step_loss, op=torch.distributed.ReduceOp.AVG)
-        return {"train/loss": step_loss.detach().item(), "train/lr(1e-3)": lr * 1e3}
+        
+        # Calculate timing
+        step_time = time.time() - step_start_time
+        
+        return {
+            "train/loss": step_loss.detach().item(), 
+            "train/lr(1e-3)": lr * 1e3,
+            "timing_s/step": step_time
+        }
 
     def validation_step(self, batch: TensorDict):
         self.fsdp_model.eval()

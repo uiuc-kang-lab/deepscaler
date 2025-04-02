@@ -190,3 +190,21 @@ class RAG:
         for score, idx in zip(top_results.values, top_results.indices):
             results.append({"score": score, "text": self.docs[int(idx)]})
         return results
+
+def get_system_prompt(prompt_symbol: str) -> str:
+    """Get a system prompt by its symbol name.
+
+    Args:
+        prompt_symbol: The name of the prompt variable (e.g. 'RLVR_PROMPT')
+
+    Returns:
+        The system prompt string
+
+    Raises:
+        ValueError: If the prompt symbol doesn't exist
+    """
+    from deepscaler import system_prompts
+    
+    if not hasattr(system_prompts, prompt_symbol):
+        raise ValueError(f"System prompt '{prompt_symbol}' not found in system_prompts.py")
+    return getattr(system_prompts, prompt_symbol)
