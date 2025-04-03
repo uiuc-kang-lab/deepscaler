@@ -390,12 +390,16 @@ class RayPPOTrainer(object):
         if self.config.trainer.rejection_sample:
             train_batch_size *= self.config.trainer.rejection_sample_multiplier
             train_batch_size = int(train_batch_size)
+
+        generator = torch.Generator()
+        generator.manual_seed(43)
         self.train_dataloader = DataLoader(
             dataset=self.train_dataset,
             batch_size=train_batch_size,
             shuffle=True,
             drop_last=True,
             collate_fn=collate_fn,
+            generator=generator,
         )
 
         self.val_dataset = RLHFDataset(
