@@ -26,7 +26,7 @@ fi
 # Train over a single node, 8 A100-80GB GPUs.
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
-    data.train_files=$HOME/rllm/data/deepscaler_train.parquet \
+    data.train_files=$HOME/rllm/data/eurus_math_train.parquet \
     data.val_files=$HOME/rllm/data/aime.parquet \
     data.train_batch_size=128 \
     data.val_batch_size=512 \
@@ -56,8 +56,8 @@ python3 -m verl.trainer.main_ppo \
     algorithm.kl_ctrl.kl_coef=0.001 \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
-    trainer.project_name='deepscaler' \
-    trainer.experiment_name='deepscaler-1.5b-8k' \
+    trainer.project_name='rllm' \
+    trainer.experiment_name='deepscaler-1.5b-8k-eurus-2-math' \
     +trainer.val_before_train=True \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \
