@@ -1,9 +1,9 @@
-sync:
-	ansible-playbook -v -i inventory.ini setup.yml
+install:
+	pip install --upgrade pip setuptools wheel
+	pip install -e ./verl
+	pip install -e .
 
 dataset:
-	python scripts/data/download_datasets.py
-	python scripts/data/deepcoder_dataset.py
 	python scripts/data/deepscaler_dataset.py
 	python scripts/data/eurus_dataset.py
 
