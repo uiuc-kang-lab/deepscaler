@@ -3740,6 +3740,7 @@ dependencies = [
     { name = "torchaudio" },
     { name = "torchmetrics" },
     { name = "torchvision" },
+    { name = "verl" },
     { name = "vertexai" },
     { name = "wandb" },
 ]
@@ -3752,11 +3753,6 @@ build = [
 ]
 compile = [
     { name = "flash-attn" },
-]
-
-[package.dev-dependencies]
-verl-sync = [
-    { name = "verl" },
 ]
 
 [package.metadata]
@@ -3790,13 +3786,11 @@ requires-dist = [
     { name = "torchaudio" },
     { name = "torchmetrics" },
     { name = "torchvision" },
+    { name = "verl", editable = "verl" },
     { name = "vertexai" },
     { name = "wandb" },
 ]
 provides-extras = ["build", "compile"]
-
-[package.metadata.requires-dev]
-verl-sync = [{ name = "verl", editable = "verl" }]
 
 [[package]]
 name = "rpds-py"

@@ -33,17 +33,14 @@ dependencies = [
     'e2b_code_interpreter',
     'firecrawl',
     'wandb',
+    'verl',
 ]
-
-[dependency-groups]
-verl-sync = ["verl"]
 
 [project.optional-dependencies]
 build = ["torch", "setuptools", "packaging"]
 compile = ["flash-attn"]
 
 [tool.uv]
-default-groups = ["verl-sync"]
 no-build-isolation-package = ["flash-attn"]
 
 [tool.uv.sources]
