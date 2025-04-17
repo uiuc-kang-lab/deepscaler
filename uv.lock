@@ -3715,6 +3715,7 @@ version = "0.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "browsergym" },
+    { name = "datasets" },
     { name = "deepspeed" },
     { name = "dm-tree", version = "0.1.8", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.13'" },
     { name = "dm-tree", version = "0.1.9", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.13'" },
@@ -3758,6 +3759,7 @@ compile = [
 [package.metadata]
 requires-dist = [
     { name = "browsergym" },
+    { name = "datasets", specifier = "==3.5.0" },
     { name = "deepspeed" },
     { name = "dm-tree" },
     { name = "e2b-code-interpreter" },
