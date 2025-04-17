@@ -62,7 +62,14 @@ Then, clone the repository and install dependencies with `uv`:
 ```bash
 git clone git@github.com:agentica-project/rllm.git
 cd rllm
-uv sync
+uv sync --extra build
+uv sync --extra build --extra compile
+```
+
+Next, log into wandb:
+
+```bash
+uv run wandb login
 ```
 
 ### Data

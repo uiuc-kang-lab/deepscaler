@@ -33,11 +33,14 @@ dependencies = [
     'e2b_code_interpreter',
     'firecrawl',
     'wandb',
-    'flash-attn'
 ]
 
 [dependency-groups]
 verl-sync = ["verl"]
+
+[project.optional-dependencies]
+build = ["torch", "setuptools", "packaging"]
+compile = ["flash-attn"]
 
 [tool.uv]
 default-groups = ["verl-sync"]
@@ -45,6 +48,11 @@ no-build-isolation-package = ["flash-attn"]
 
 [tool.uv.sources]
 verl = { path = "verl", editable = true }
+
+[[tool.uv.dependency-metadata]]
+name = "flash-attn"
+version = "2.7.4.post1"
+requires-dist = ["torch", "einops"]
 
 [build-system]
 requires = ["hatchling"]
