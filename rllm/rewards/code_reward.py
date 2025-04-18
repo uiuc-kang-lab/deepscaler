@@ -13,13 +13,8 @@ import random
 import ast 
 
 #from rllm.rewards.code_utils.code_contests import run_test as code_contests_run_test
-from rllm.rewards.code_utils.livecodebench import run_test as lcb_run_test
-from rllm.rewards.code_utils.codeforces import run_test as codeforces_run_test
 #from rllm.rewards.code_utils.swebench import swebench_check_correctness
-from rllm.rewards.code_utils.humanevalplus import run_test as humanevalplus_run_test, get_num_test_cases
-from rllm.rewards.code_utils.taco import run_test as taco_run_test
-from rllm.rewards.code_utils.firejail_exec import code_exec_firejail as lc_code_exec
-from rllm.rewards.code_utils.kodcode import code_exec as kod_code_exec
+
 from rllm.rewards.reward_types import RewardConfig, RewardFn, RewardInput, RewardOutput, RewardType
 
 
@@ -172,6 +167,7 @@ def primeintellect_check_correctness(tests, code):
     }
     if fn_name:
         tests['fn_name'] = fn_name
+    from rllm.rewards.code_utils.taco import run_test as taco_run_test
     return check_correctness(tests, code, taco_run_test)
 
 def lcb_check_correctness_v2(sample, generation, timeout=6, debug=False):
@@ -187,6 +183,7 @@ def lcb_check_correctness_v2(sample, generation, timeout=6, debug=False):
 
 
     def _temp_run(sample, generation, debug, result, metadata_list, timeout):
+        from rllm.rewards.code_utils.livecodebench import run_test as lcb_run_test
         res, metadata = lcb_run_test(sample, test=generation, debug=debug, timeout=timeout)
         result.append(res)
         metadata_list.append(metadata)
@@ -227,6 +224,7 @@ def leetcode_check_correctness(tests: List[Dict[str, str]], code: str) -> bool:
      Returns:
           bool: True if all tests pass and result list exists, False otherwise
      """
+     from rllm.rewards.code_utils.firejail_exec import code_exec_firejail as lc_code_exec
      succ, output = lc_code_exec(code + '\n' + tests["functional"])
      if not succ:
          print(f"Error in code execution: {output}")
@@ -251,6 +249,7 @@ def kodcode_check_correctness(test: str, code: str, timeout_per_test: int = 5) -
     # Remove 'if __name__ == "__main__":' block if present
     code = clean_code_main_block(code)
     
+    from rllm.rewards.code_utils.kodcode import code_exec as kod_code_exec
     succ, output = kod_code_exec(code, test, timeout_per_test * num_tests)
     if not succ:
         print(f"Error in code execution: {output}")
@@ -271,6 +270,7 @@ def humanevalplus_check_correctness(test: str, code: str, timeout_per_test: int 
     """
     code = clean_code_main_block(code)
 
+    from rllm.rewards.code_utils.humanevalplus import run_test as humanevalplus_run_test, get_num_test_cases
     num_test_cases = get_num_test_cases(test)
     succ, output = humanevalplus_run_test(code, test, timeout_per_test * num_test_cases)
     if not succ:
@@ -308,9 +308,11 @@ class RewardCodeFn(RewardFn):
         # Tests: Dictionary[Lists] - CodeContests, Taco/Apps
         is_correct = False
         if dataset_name in ["taco", "apps", "code_contests"]:
+            from rllm.rewards.code_utils.taco import run_test as taco_run_test
             test_fn = taco_run_test
             is_correct = check_correctness(tests, model_code, test_fn)
         elif dataset_name == "codeforces":
+            from rllm.rewards.code_utils.codeforces import run_test as codeforces_run_test
             test_fn = codeforces_run_test
             is_correct = check_correctness(tests, model_code, test_fn)
         elif dataset_name == "leetcode":

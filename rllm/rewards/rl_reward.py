@@ -1,6 +1,5 @@
 from rllm.rewards.reward_types import RewardConfig, RewardFn, RewardInput, RewardOutput, RewardType
 from rllm.rewards.math_reward import RewardMathFn
-from rllm.rewards.code_reward import rllm_reward_fn_code 
 from rllm.rewards.math_reward import rllm_reward_fn_math
 from typing import Union, List
 import json 
@@ -40,6 +39,7 @@ def rllm_reward_fn(data_source: str, llm_solution: str, ground_truth: Union[str,
             ground_truth = json.loads(ground_truth)
         except json.JSONDecodeError:
             return False 
+        from rllm.rewards.code_reward import rllm_reward_fn_code
         return rllm_reward_fn_code(data_source, llm_solution, ground_truth, **kwargs)
     else:
         return rllm_reward_fn_math(data_source, llm_solution, ground_truth, extra_info, **kwargs)
