@@ -33,8 +33,8 @@ dependencies = [
     'e2b_code_interpreter',
     'firecrawl',
     'wandb',
-    'verl',
-    'datasets==3.5.0'
+    "verl[gpu,prime]",
+    'datasets==3.5.0',
 ]
 
 [project.optional-dependencies]
