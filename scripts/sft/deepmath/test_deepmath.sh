@@ -25,7 +25,7 @@ set -x
 #     +trainer.test_freq=4
 
 
-nproc_per_node=1
+nproc_per_node=4
 HOME=/workspace
 hdfs_path=/workspace/hdfs
 
@@ -37,19 +37,23 @@ torchrun --standalone --nnodes=1 --nproc_per_node=$nproc_per_node \
     data.response_key=answer \
     data.max_length=4096 \
     data.truncation=right \
-    data.micro_batch_size=1 \
-    optim.lr=1e-4 \
+    data.micro_batch_size=8 \
+    data.train_batch_size=32 \
     model.partial_pretrain=Qwen/Qwen2.5-1.5B \
     +model.system_prompt=DEEPSEEK_MATH_SYSTEM_PROMPT \
     trainer.project_name=deepmath-sft \
-    trainer.experiment_name=deepmath-sft-qwen-2.5-1.5b \
     trainer.logger=['console','wandb'] \
-    trainer.total_training_steps=4 \
+    trainer.experiment_name=deepmath-sft-qwen-2.5-1.5b \
+    trainer.total_training_steps=100 \
     trainer.default_hdfs_dir=$hdfs_path \
-    +trainer.n_gpus_per_node=1 \
+    trainer.default_local_dir=/workspace/checkpoints/deepseek-sft \
+    +trainer.n_gpus_per_node=4 \
     +trainer.nnodes=1 \
     +trainer.test_freq=4 \
-    +trainer.entity_name=ddkang-uiuc-rl-generalization \
+    +trainer.entity_name=ddkang-uiuc-rl-generalization
+    # trainer.resume_from_path=/workspace/checkpoints/deepseek-sft \
+    # optim.lr=1e-4 \
+    # trainer.resume_mode=auto \
     # +data.response_dict_keys=['answer'] \
     # +data.prompt_dict_keys=['content'] \
     # ulysses_sequence_parallel_size=2 \
