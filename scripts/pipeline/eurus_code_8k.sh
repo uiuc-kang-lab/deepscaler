@@ -28,13 +28,15 @@ export CUDA_LAUNCH_BLOCKING=1
 export NCCL_DEBUG=TRACE
 export VLLM_TRACE_FUNCTION=1
 
+rllm_root=$(realpath "$(dirname "${BASH_SOURCE[0]}")"/../../)
+
 # Train over a single node, 8 A100-80GB GPUs.
 # Generate math_train.parquet by going to scripts/data/deepscaler_dataset.py
 # and setting the training dataset to TrainDataset.Math.MATH.
 uv run -m verl.trainer.main_ppo_async \
     algorithm.adv_estimator=grpo \
-    data.train_files=$HOME/rllm/data/eurus_coding_train.parquet \
-    data.val_files=$HOME/rllm/data/aime.parquet \
+    data.train_files=$rllm_root/data/eurus_coding_train.parquet \
+    data.val_files=$rllm_root/data/aime.parquet \
     data.train_batch_size=64 \
     data.val_batch_size=512 \
     data.max_prompt_length=2048 \
@@ -61,18 +63,18 @@ uv run -m verl.trainer.main_ppo_async \
     actor_rollout_ref.rollout.temperature=0.6 \
     actor_rollout_ref.rollout.val_kwargs.temperature=0.6 \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.85 \
-    actor_rollout_ref.rollout.n=4 \
+    actor_rollout_ref.rollout.n=1 \
     actor_rollout_ref.rollout.val_kwargs.n=1 \
     actor_rollout_ref.rollout.enforce_eager=False \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     algorithm.kl_ctrl.kl_coef=0.001 \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
-    trainer.project_name='eurus' \
-    trainer.experiment_name='eurus-code-async-working' \
+    trainer.project_name='eurus-2' \
+    trainer.experiment_name='eurus-code-async' \
     +trainer.val_before_train=False \
-    trainer.n_training_gpus_per_node=4 \
-    trainer.n_gpus_per_node=8 \
+    trainer.n_training_gpus_per_node=1 \
+    trainer.n_gpus_per_node=2 \
     trainer.nnodes=1 \
     trainer.save_freq=10 \
     trainer.test_freq=10 \

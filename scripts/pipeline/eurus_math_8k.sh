@@ -23,13 +23,15 @@ if [ -z "$MODEL_PATH" ]; then
     MODEL_PATH="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
 fi
 
+rllm_root=$(realpath "$(dirname "${BASH_SOURCE[0]}")"/../../)
+
 # Train over a single node, 8 A100-80GB GPUs.
 # Generate math_train.parquet by going to scripts/data/deepscaler_dataset.py
 # and setting the training dataset to TrainDataset.Math.MATH.
 uv run -m verl.trainer.main_ppo_async \
     algorithm.adv_estimator=grpo \
-    data.train_files=$HOME/rllm/data/eurus_math_train.parquet \
-    data.val_files=$HOME/rllm/data/aime.parquet \
+    data.train_files=$rllm_root/data/eurus_math_train.parquet \
+    data.val_files=$rllm_root/data/aime.parquet \
     data.train_batch_size=64 \
     data.val_batch_size=512 \
     data.max_prompt_length=2048 \
