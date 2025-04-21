@@ -18,7 +18,7 @@ def main():
     for split in ["train", "validation"]:
         # Filter math and coding data
         math_data = filter_by_ability(ds[split], "math")
-        coding_data = filter_by_ability(ds[split], "code")
+        coding_data = filter_by_ability(ds[split], "code").filter(lambda x: x["data_source"] != "codeforces")
 
         # Save as parquet files
         math_data.to_parquet(f"{output_dir}/eurus_math_{split}.parquet")
