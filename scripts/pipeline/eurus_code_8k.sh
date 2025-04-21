@@ -23,6 +23,11 @@ if [ -z "$MODEL_PATH" ]; then
     MODEL_PATH="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
 fi
 
+export VLLM_LOGGING_LEVEL=DEBUG
+export CUDA_LAUNCH_BLOCKING=1
+export NCCL_DEBUG=TRACE
+export VLLM_TRACE_FUNCTION=1
+
 # Train over a single node, 8 A100-80GB GPUs.
 # Generate math_train.parquet by going to scripts/data/deepscaler_dataset.py
 # and setting the training dataset to TrainDataset.Math.MATH.
