@@ -105,7 +105,8 @@ from datasets import load_dataset
 from openai import OpenAI
 import pandas as pd
 import tiktoken
-import os, json
+import os, json, time, sys
+import argparse
 
 def get_llm_response(prompt, client):
     n_input_tokens = len(tiktoken.encoding_for_model("o3-mini-2025-01-31").encode(prompt))
@@ -121,7 +122,9 @@ def get_llm_response(prompt, client):
 def gen_annotations(dataset: pd.DataFrame, limit):
     running_cost = 0
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    recent_10_durations = []
     for index, row in dataset.iterrows():
+        start = time.time()
         question = row["query"][1]['content']
         answer = row["label"]
         prompt = prompt_template.format(
@@ -135,20 +138,119 @@ def gen_annotations(dataset: pd.DataFrame, limit):
             question=question,
             answer=answer
         )
-        print(prompt)
+        # print(prompt)
         response, n_input_tokens, n_output_tokens, cost = get_llm_response(prompt, client)
-        print(response, n_input_tokens, n_output_tokens, cost)
+        # print(response, n_input_tokens, n_output_tokens, cost)
         result = {
             "question": question,
             "answer": answer,
             "response": response,
             "cost": cost
         }
+        running_cost += cost
         with open("mlvr_annotations.jsonl", "a+") as f:
             output_str = json.dumps(result)
             f.write(output_str + "\n")
-        if index >= limit:
+        if index == limit:
             break
+        duration = time.time() - start
+        if len(recent_10_durations) == 10:
+            recent_10_durations = recent_10_durations[1:] + [duration]
+        else:
+            recent_10_durations.append(duration)
+        if (index+1) % 10 == 0:
+            n_data_to_run = limit - index - 1 if limit > 0 else len(dataset) - index - 1
+            eta = n_data_to_run * sum(recent_10_durations) / len(recent_10_durations) / 3600
+            print(f"Sample #{index+1}, running cost ${running_cost:.2f}, eta {eta:.1f} hrs")
 
-dataset = load_dataset("virtuoussy/Multi-subject-RLVR")
-gen_annotations(dataset["train"].to_pandas(), limit=100)
+def submit_batch_job_files(dataset: pd.DataFrame, batch_size=10000):
+    batches = []
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    for i in range(0, len(dataset), batch_size):
+        batch = dataset[i:i+batch_size] if i+batch_size < len(dataset) else dataset[i:]
+        batches.append(batch)
+    for i, batch in enumerate(batches):
+        if os.path.exists(f"data/mlvr_batch_{i}.jsonl"):
+            print(f"Batch {i} already exists, skipping...")
+            continue
+        for index, row in batch.iterrows():
+            question = row["query"][1]['content']
+            answer = row["label"]
+            prompt = prompt_template.format(
+                math_def=math_def,
+                cs_def=cs_def,
+                missing_info_examples=missing_info_examples,
+                incomplete_question_examples=incomplete_question_examples,
+                math_examples=math_examples,
+                cs_examples=cs_examples,
+                other_domain_examples=other_domain_examples,
+                question=question,
+                answer=answer
+            )
+            request = {
+                "custom_id": f"request-{i}-{index}",
+                "method": "POST",
+                "url": "/v1/chat/completions",
+                "body": {
+                    "model": "o3-mini-2025-01-31",
+                    "messages": [
+                        {"role": "user", "content": prompt}
+                    ],
+                }
+            }
+            with open(f"data/mlvr_batch_{i}.jsonl", "a+") as f:
+                output_str = json.dumps(request)
+                f.write(output_str + "\n")
+        print(f"Batch processing done {i}/{len(batches)}")
+    for i in range(len(batches)):
+        batch_input_file = client.files.create(
+            file=open(f"data/mlvr_batch_{i}.jsonl", "rb"),
+            purpose="batch"
+        )
+        batch_input_file_id = batch_input_file.id
+        with open("data/file_ids.txt", "a+") as f:
+            f.write(f"Batch {i}: {batch_input_file_id}\n")
+        print(f"Batch {i} file ID: {batch_input_file_id}")
+    return
+
+def create_batch_job(file_id, batch_size=50000):
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    batch = client.batches.create(
+        input_file_id=file_id,
+        endpoint="/v1/chat/completions",
+        completion_window="24h",
+        metadata={
+            "description": f"Batch job {file_id} for MLVR dataset"
+        }
+    )
+    print(batch)
+    with open("data/batch_job_ids.txt", "a+") as f:
+        f.write(f"{file_id}: {batch.id}\n")
+
+# {"custom_id": "request-1", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-3.5-turbo-0125", "messages": [{"role": "system", "content": "You are a helpful assistant."},{"role": "user", "content": "Hello world!"}],"max_tokens": 1000}}
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Generate annotations for MLVR dataset")
+    parser.add_argument("--limit", type=int, default=0, help="Limit the number of samples to process")
+    parser.add_argument("--real_time", action="store_true", help="Use real-time mode")
+    parser.add_argument("--batch_size", type=int, default=20000, help="Batch size for batch mode")
+    parser.add_argument("--submit_batch", action="store_true", help="Submit batch job files")
+    parser.add_argument("--create_job", action="store_true", help="Create batch job")
+    parser.add_argument("--check_status", action="store_true", help="Check batch job status")
+    parser.add_argument("--file_id", type=str, help="File ID for batch job")
+    args = parser.parse_args()
+
+    if args.real_time:
+        dataset = load_dataset("virtuoussy/Multi-subject-RLVR")["train"].to_pandas()
+        gen_annotations(dataset, args.limit)
+    if args.submit_batch:
+        dataset = load_dataset("virtuoussy/Multi-subject-RLVR")["train"].to_pandas()
+        submit_batch_job_files(dataset, args.batch_size)
+    if args.create_job:
+        if args.file_id is None:
+            raise ValueError("File ID is required for creating batch job")
+        create_batch_job(args.file_id, args.batch_size)
+    if args.check_status:   
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        batch_job = client.batches.retrieve(args.file_id)
+        print(f"Batch job status: {batch_job}")
