@@ -1,43 +1,108 @@
 from datasets import load_dataset
 import numpy as np
 import os
+from typing import Dict, List, Optional, Any
+import pandas as pd
 
 
-def filter_by_ability(dataset, ability):
-    return dataset.filter(lambda x: x["ability"] == ability)
+def make_map_fn_train(split: str):
+    """Create a mapping function to process dataset examples.
+
+    Args:
+        split: Dataset split name ('train' or 'test')
+
+    Returns:
+        Function that processes individual dataset examples
+    """
+    def process_fn(example: Dict[str, Any], idx: int) -> Optional[Dict[str, Any]]:
+        question = eval(example.pop('query').replace("}\n {", "}, {"))
+        instruction = "Let's think step by step and output the final answer within \\boxed{}."
+        question = f"{question[1]['content']} {instruction}"
+        answer = example.pop('label')
+
+        data = {
+            "data_source": "",
+            "prompt": [{
+                "role": "user",
+                "content": question
+            }],
+            "ability": "general",
+            "reward_model": {
+                "style": "rule",
+                "ground_truth": answer
+            },
+            "extra_info": {
+                'split': split,
+                'index': idx
+            }
+        }
+        return data
+    return process_fn
 
 
-def main():
+def make_map_fn_test(split: str):
+    """Create a mapping function to process dataset examples.
+
+    Args:
+        split: Dataset split name ('train' or 'test')
+
+    Returns:
+        Function that processes individual dataset examples
+    """
+    def process_fn(example: Dict[str, Any], idx: int) -> Optional[Dict[str, Any]]:
+        question = example.pop('query')
+        instruction = "Let's think step by step and output the final answer within \\boxed{}."
+        question = f"{question[1]['content']} {instruction}"
+        answer = example.pop('label')
+        subject = example.pop('subject')
+
+        data = {
+            "data_source": subject,
+            "prompt": [{
+                "role": "user",
+                "content": question
+            }],
+            "ability": "general",
+            "reward_model": {
+                "style": "rule",
+                "ground_truth": answer
+            },
+            "extra_info": {
+                'split': split,
+                'index': idx
+            }
+        }
+        return data
+    return process_fn
+
+
+if __name__ == '__main__':
+
     # Load dataset
-    original_ds = load_dataset("virtuoussy/Multi-subject-RLVR")
-    annotated_ds = load_dataset("yuxuan18/Multi-subject-RLVR-annotated")
+    original_ds = load_dataset("virtuoussy/Multi-subject-RLVR")['test']
+    annotated_ds = load_dataset("yuxuan18/Multi-subject-RLVR-annotated")['others']
 
-    # Create output directory if it doesn't exist
-    output_dir = "data"
-    os.makedirs(output_dir, exist_ok=True)
+    # Process training data
+    train_data: List[Dict[str, Any]] = []
+    process_fn = make_map_fn_train('others')
+    for idx, example in enumerate(annotated_ds):
+        processed_example = process_fn(example, idx)
+        if processed_example is not None:
+            train_data.append(processed_example)
 
-    # Process train split
-    general_data = annotated_ds["others"].to_pandas()
-    
-    general_data["prompt"] = general_data["query"].apply(lambda x: np.array(eval(x.replace("}\n {", "}, {"))))
-    general_data["data_source"] = "general"
-    general_data["reward_model"] = general_data["label"].apply(lambda x: {'ground_truth': x, 'style': 'rule'})
-    general_data["extra_info"] = general_data["label"].apply(lambda x: {'index': 0, 'split': 'dummy'})
-    general_data["ability"] = "general"
-    general_data.to_parquet(f"{output_dir}/mlvr_general_train.parquet")
-    general_data.iloc[:1000].to_parquet(f"{output_dir}/mlvr_general_train_1000.parquet")
-    
-    # Process validation split
-    validation_data = original_ds["test"]
-    validation_data = validation_data.filter(lambda x: x["subset"] not in ["Computer Science and Technology", "Mathematics"]).to_pandas()
-    validation_data = validation_data.rename(columns={"query": "prompt"})
-    validation_data["data_source"] = "general"
-    validation_data["reward_model"] = validation_data["label"].apply(lambda x: {'ground_truth': x, 'style': 'rule'})
-    validation_data["extra_info"] = validation_data["label"].apply(lambda x: {'index': 0, 'split': 'dummy'})
-    validation_data["ability"] = "general"
-    validation_data.to_parquet(f"{output_dir}/mlvr_general_validation.parquet")
+    # Process and save each test dataset separately
+    test_data: List[Dict[str, Any]] = []
+    process_fn = make_map_fn_test('test')
+    for idx, example in enumerate(original_ds):
+        processed_example = process_fn(example, idx)
+        if processed_example is not None:
+            test_data.append(processed_example)
 
+    test_df = pd.DataFrame(test_data)
+    test_df.to_parquet(os.path.join('data', f'mlvr_test.parquet'))
+    print(f"mlvr test data size:", len(test_data))
 
-if __name__ == "__main__":
-    main()
-
+    # Save training dataset
+    print("train data size:", len(train_data))
+    train_df = pd.DataFrame(train_data)
+    train_df.to_parquet(os.path.join('data', 'mlvr_train.parquet'))
