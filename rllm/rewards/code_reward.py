@@ -277,6 +277,26 @@ def humanevalplus_check_correctness(test: str, code: str, timeout_per_test: int 
         print(f"Error in code execution: {output}")
     return succ
 
+def safe_parse(x):
+    """
+    Safely parse an input into a Python object (dict, list, etc.).
+    
+    - If already a dict or list, return as-is.
+    - If a string, try json.loads first.
+    - If json.loads fails, fallback to ast.literal_eval.
+    - Otherwise, raise an error.
+    """
+    if isinstance(x, (dict, list)):
+        return x
+    elif isinstance(x, str):
+        try:
+            return json.loads(x)
+        except json.JSONDecodeError:
+            return ast.literal_eval(x)
+    else:
+        raise ValueError(f"Unsupported type: {type(x)}")
+
+
 class RewardCodeFn(RewardFn):
     """
     Reward function for evaluating code dataset answers.
@@ -307,19 +327,22 @@ class RewardCodeFn(RewardFn):
         # Tests: List[Dictionary] - Codeforces, LiveCodeBench
         # Tests: Dictionary[Lists] - CodeContests, Taco/Apps
         is_correct = False
-        if dataset_name in ["taco", "apps", "code_contests"]:
+        if dataset_name in ["taco", "apps", "code_contests", "eurus"]: # call
             test_fn = taco_run_test
+            tests = safe_parse(tests)
             is_correct = check_correctness(tests, model_code, test_fn)
         elif dataset_name == "codeforces":
             test_fn = codeforces_run_test
             is_correct = check_correctness(tests, model_code, test_fn)
         elif dataset_name == "leetcode":
             is_correct = leetcode_check_correctness(tests, model_code)
-        elif dataset_name == "livecodebench":
+        elif dataset_name in ["livecodebench", "lcbv5"]: # call
+            tests = safe_parse(tests)
             is_correct = lcb_check_correctness_v2(tests, model_code, debug=False)
-        elif dataset_name == "primeintellect":
+        elif dataset_name == "primeintellect": # call
+            tests = safe_parse(tests)
             is_correct = primeintellect_check_correctness(tests, model_code)
-        elif dataset_name == "kodcode":
+        elif dataset_name == "kodcode": # call
             is_correct = kodcode_check_correctness(tests, model_code)
         elif dataset_name == "humanevalplus":
             is_correct = humanevalplus_check_correctness(tests, model_code)
