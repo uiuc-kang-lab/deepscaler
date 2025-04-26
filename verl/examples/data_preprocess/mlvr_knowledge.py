@@ -1,10 +1,19 @@
 knowledge_questions = """\
-Question 1: () is a method of selecting a certain number of properties that have been traded and meet certain conditions, which are similar to the property being appraised, and then comparing them with the appraised property, appropriately adjusting their transaction prices to determine the value of the appraised property.
-Answer 1: Market Approach
-Question 2: The linear relationship is the relationship where the superior commands the subordinate, and its essence is a ______ relationship.
-Answer 2: Command relationship
-Question 3: Without the permission of ( ) and the project design leader, the construction unit has no right to modify the design.
-Answer 3: Design Unit
+Question 1: The poet who is known as one of the 'Two Ans of Jinan' along with Li Qingzhao is ( )
+Answer 1: Xin Qiji
+Question 2: There are several commonly used network platform software, but ______ is not a network management platform software.
+Answer 2: NetManager
+Question 3: The restrictions on marriage during the Western Zhou period are ( )
+Answer 3: No marriage between the same surname
+"""
+
+low_reasoning_questions = """\
+Question 1: In patients with mitral stenosis, the auscultation sign that indicates the valve still has a certain degree of elasticity is
+Answer 1: Mitral valve opening snap
+Question 2: Custom type conversion is performed by converting from lower-level data to higher-level data according to priority, the order of priority is ( ).
+Answer 2: char-int long-float-double
+Question 3: () is a method of selecting a certain number of properties that have been traded and meet certain conditions, which are similar to the property being appraised, and then comparing them with the appraised property, appropriately adjusting their transaction prices to determine the value of the appraised property.
+Answer 3: Market Approach
 """
 
 reasoning_questions = """\
@@ -17,21 +26,28 @@ Answer 3: speculative demand
 """
 
 prompt_template = """\
-Given a question-answer pair, you need to detect whether the question is a knowledge question or a reasoning question. A knowledge question is a question that can be answered by looking up information somewhere, while a reasoning question is a question that requires reasoning or inference to answer. You need to classify the question into one of the following categories: knowledge, reasoning. 
+Given a question-answer pair, your task is to determine the level of reasoning required to answer the question:
+- No reasoning: The answer can be found directly from general world knowledge, without any analysis or processing of the information in the question.
+- One-step reasoning: Answering the question requires performing a single logical or inferential step based on the information provided in the question.
+- Multistep reasoning: Answering the question requires completing two or more logical or inferential steps, often involving the synthesis or combination of information from multiple parts of the question.
 
-Here are examples of knowledge questions:
+Here are examples of questions that requires no reasoning.
 {knowledge_examples}
 
-Here are examples of rasoning questions:
+Here are examples of questions that require one-step reasoning.
+{low_reasoning_questions}
+
+Here are examples of questions that require multistep reasoning.
 {reasoning_examples}
 
-The given question-answer pair is: 
+Here are the question-answer pairs that you need to classify.
 Question: {question}
 Answer: {answer}
 
 Your response should only contain one of the following phrases and nothing else.
-1. knowledge
-2. reasoning
+1. no reasoning
+2. one-step reasoning
+3. multistep reasoning
 
 Your response is:
 """
@@ -39,7 +55,6 @@ Your response is:
 from datasets import load_dataset
 from openai import OpenAI
 import pandas as pd
-import tiktoken
 import os, json, time, glob
 import argparse
 
@@ -65,6 +80,7 @@ def gen_annotations(dataset: pd.DataFrame, limit):
         prompt = prompt_template.format(
             knowledge_examples=knowledge_questions,
             reasoning_examples=reasoning_questions,
+            low_reasoning_questions=low_reasoning_questions,
             question=question,
             answer=answer
         )
@@ -109,6 +125,7 @@ def submit_batch_job_files(dataset: pd.DataFrame, batch_size=10000):
             prompt = prompt_template.format(
                 knowledge_examples=knowledge_questions,
                 reasoning_examples=reasoning_questions,
+                low_reasoning_questions=low_reasoning_questions,
                 question=question,
                 answer=answer
             )
@@ -153,7 +170,7 @@ def create_batch_job(file_id):
         f.write(f"{file_id}: {batch.id}\n")
         
 def download_all():
-    with open("data/batch_job_ids.txt", "r") as f:
+    with open("data/batch_job_ids_o4.txt", "r") as f:
         batch_ids = f.readlines()
         batch_ids = [batch_id.strip().split(": ")[1] for batch_id in batch_ids]
     for i, batch_id in enumerate(batch_ids):
@@ -177,8 +194,11 @@ def merge():
     for i in range(n_results):
         with open(f"data/mlvr_batch_results_{i}.jsonl", "r") as f:
             lines = f.readlines()
+            print(i, len(lines))
             for line in lines:
                 result = json.loads(line)
+                if result["custom_id"] in ["request-16-329779", "request-21-439097"]:
+                    labels.append("error")
                 labels.append(result["response"]["body"]["choices"][0]["message"]["content"])
     print(f"Total {len(labels)} labels")
     labels = [label.strip() for label in labels]

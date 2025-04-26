@@ -228,13 +228,13 @@ if __name__ == "__main__":
             data["query"] = data["query"].tolist()
             data["generation_cost"] = gen_cost
             total_cost += gen_cost
-            with open("answers-gpt4o.jsonl", "a") as f:
+            with open("answers.jsonl", "a") as f:
                 f.write(json.dumps(data.to_dict()) + "\n")
             if i == args.limit:
                 break
         print(f"Total generation cost: {total_cost}")
     if args.grading:
-        with open("answers-gpt4o.jsonl", "r") as f:
+        with open("answers.jsonl", "r") as f:
             total_cost = 0
             for i, line in enumerate(f):
                 data = json.loads(line)
@@ -245,7 +245,7 @@ if __name__ == "__main__":
                 print("-" * 50)
                 data["grading"] = grading_response
                 data["grading_cost"] = grading_cost
-                with open("grading-gpt4o.jsonl", "a") as f:
+                with open("grading.jsonl", "a") as f:
                     f.write(json.dumps(data) + "\n")
             print(f"Total grading cost: {total_cost}")
     if args.code:

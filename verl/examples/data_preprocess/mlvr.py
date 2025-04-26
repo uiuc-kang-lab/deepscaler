@@ -105,7 +105,7 @@ from datasets import load_dataset
 from openai import OpenAI
 import pandas as pd
 import tiktoken
-import os, json, time, sys
+import os, json, time, glob
 import argparse
 
 def get_llm_response(prompt, client):
@@ -226,6 +226,40 @@ def create_batch_job(file_id, batch_size=50000):
     print(batch)
     with open("data/batch_job_ids.txt", "a+") as f:
         f.write(f"{file_id}: {batch.id}\n")
+        
+def download_all():
+    with open("data/batch_job_ids.txt", "r") as f:
+        batch_ids = f.readlines()
+        batch_ids = [batch_id.strip().split(": ")[1] for batch_id in batch_ids]
+    for i, batch_id in enumerate(batch_ids):
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        batch = client.batches.retrieve(batch_id)
+        if batch.status == "completed" and batch.output_file_id:
+            file_id = batch.output_file_id
+            file_response = client.files.content(file_id)
+            file_content = file_response.text
+            with open(f"data/mlvr_batch_results_{i}.jsonl", "a+") as f:
+                f.write(file_content)
+        elif batch.status == "failed":
+            print(f"Batch job {batch_id} failed")
+        else:
+            print(f"Batch job {batch_id} is still running")
+            
+def merge():
+    dataset = load_dataset("virtuoussy/Multi-subject-RLVR")["train"].to_pandas()
+    n_results = len(glob.glob("data/mlvr_batch_results_*.jsonl"))
+    labels = []
+    for i in range(n_results):
+        with open(f"data/mlvr_batch_results_{i}.jsonl", "r") as f:
+            lines = f.readlines()
+            for line in lines:
+                result = json.loads(line)
+                labels.append(result["response"]["body"]["choices"][0]["message"]["content"])
+    print(f"Total {len(labels)} labels")
+    labels = [label.strip() for label in labels]
+    print(f"Dataset size: {len(dataset)}")
+    dataset["subject"] = labels
+    dataset.to_csv("data/mlvr_annotated.csv", index=False)
 
 # {"custom_id": "request-1", "method": "POST", "url": "/v1/chat/completions", "body": {"model": "gpt-3.5-turbo-0125", "messages": [{"role": "system", "content": "You are a helpful assistant."},{"role": "user", "content": "Hello world!"}],"max_tokens": 1000}}
 
@@ -238,6 +272,8 @@ if __name__ == "__main__":
     parser.add_argument("--create_job", action="store_true", help="Create batch job")
     parser.add_argument("--check_status", action="store_true", help="Check batch job status")
     parser.add_argument("--file_id", type=str, help="File ID for batch job")
+    parser.add_argument("--download_all", action="store_true", help="Download all files")
+    parser.add_argument("--merge", action="store_true", help="Merge all files")
     args = parser.parse_args()
 
     if args.real_time:
@@ -254,3 +290,7 @@ if __name__ == "__main__":
         client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         batch_job = client.batches.retrieve(args.file_id)
         print(f"Batch job status: {batch_job}")
+    if args.download_all:
+        download_all()
+    if args.merge:
+        merge()
