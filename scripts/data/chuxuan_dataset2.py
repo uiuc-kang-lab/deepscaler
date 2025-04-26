@@ -11,6 +11,25 @@ def filter_by_sources(dataset, sources, include=True):
     else:
         return dataset.filter(lambda x: x["data_source"] not in sources)
 
+def safe_parse(x):
+    """
+    Safely parse an input into a Python object (dict, list, etc.).
+    
+    - If already a dict or list, return as-is.
+    - If a string, try json.loads first.
+    - If json.loads fails, fallback to ast.literal_eval.
+    - Otherwise, raise an error.
+    """
+    if isinstance(x, (dict, list)):
+        return x
+    elif isinstance(x, str):
+        try:
+            return json.loads(x)
+        except json.JSONDecodeError:
+            return ast.literal_eval(x)
+    else:
+        raise ValueError(f"Unsupported type: {type(x)}")
+
 def format_example(example, split, idx, max_test_length=10000, max_single_number_digits=1000):
     question = example['problem']
     tests = example['tests']
@@ -32,7 +51,7 @@ def format_example(example, split, idx, max_test_length=10000, max_single_number
         return 1
     
     if example.get('metadata', {}):
-        tests =  ast.literal_eval(tests)
+        tests =  safe_parse(tests)
         assert 'func_name' in example['metadata'], f"Function name is not found, check if your LCB data is preprocessed correctly: {example['metadata']}"
         if isinstance(tests, dict):
             tests['metadata'] = example['metadata']
@@ -98,17 +117,14 @@ def main():
     filtered_data = ds["train"].filter(lambda x: x["data_source"] not in exclude_sources)
 
     # Shuffle the filtered dataset
-    full_data = filtered_data.shuffle(seed=42)
-
-    # Take 128 examples for validation
-    coding_data_validation = full_data.select(range(128))
-
-    # Take the rest for training
-    coding_data_train = full_data.select(range(128, len(full_data)))
+    coding_data_train = filtered_data.shuffle(seed=42)
 
     # Save datasets
-    process_and_save(coding_data_validation, split="validation", output_basename=f"{output_dir}/chuxuan_coding_validation")
     process_and_save(coding_data_train, split="train", output_basename=f"{output_dir}/chuxuan_coding_train")
+
+    ds_val = load_dataset("chuxuan/RL-gen-code-test")
+    coding_data_validation = ds_val["train"]
+    process_and_save(coding_data_validation, split="validation", output_basename=f"{output_dir}/chuxuan_coding_validation")
 
 if __name__ == "__main__":
     main()
