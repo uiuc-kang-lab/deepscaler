@@ -68,7 +68,11 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
     trainer.project_name='qwen-code' \
+<<<<<<< HEAD
     trainer.experiment_name='qwen-code-fulldata-all-debug' \
+=======
+    trainer.experiment_name='qwen-code-newval' \
+>>>>>>> cc400fe3cbf3ab98903f9afd01d0fc354b1c53f5
     +trainer.val_before_train=True \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \
