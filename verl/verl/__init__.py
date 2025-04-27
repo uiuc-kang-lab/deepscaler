@@ -24,4 +24,4 @@ from .protocol import DataProto
 from .utils.logging_utils import set_basic_config
 import logging
 
-set_basic_config(level=logging.WARNING)
+set_basic_config(level=logging.DEBUG)

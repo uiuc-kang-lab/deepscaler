@@ -327,12 +327,14 @@ class RewardCodeFn(RewardFn):
         # Tests: List[Dictionary] - Codeforces, LiveCodeBench
         # Tests: Dictionary[Lists] - CodeContests, Taco/Apps
         is_correct = False
+        print(f"CURRENTLY CALCULATING REWARD ON DATA SAMPLE FROM {dataset_name}")
         if dataset_name in ["taco", "apps", "code_contests", "eurus"]: # call
             test_fn = taco_run_test
             tests = safe_parse(tests)
             is_correct = check_correctness(tests, model_code, test_fn)
-        elif dataset_name == "codeforces":
+        elif dataset_name == "codeforces": #call
             test_fn = codeforces_run_test
+            tests = safe_parse(tests)
             is_correct = check_correctness(tests, model_code, test_fn)
         elif dataset_name == "leetcode":
             is_correct = leetcode_check_correctness(tests, model_code)
