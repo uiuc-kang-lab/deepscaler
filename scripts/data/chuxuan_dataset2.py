@@ -51,6 +51,8 @@ def format_example(example, split, idx, max_test_length=10000, max_single_number
         return 1
     
     if example.get('metadata', {}):
+        print(example['metadata'])
+        assert False
         tests =  safe_parse(tests)
         assert 'func_name' in example['metadata'], f"Function name is not found, check if your LCB data is preprocessed correctly: {example['metadata']}"
         if isinstance(tests, dict):
@@ -62,14 +64,14 @@ def format_example(example, split, idx, max_test_length=10000, max_single_number
         
     ground_truth_str = json.dumps(tests)
 
-    if dataset_name == "lcbv5":
+    if split == "validation" and example["source"] == "lcbv5":
         starter_code = example.get("starter_code", None)
         question = fetch_live_code_bench_system_prompt(question, starter_code)
     if isinstance(question, dict):
         question = json.dumps(question)
 
     return {
-        "data_source": example["data_source"],
+        "data_source": example["data_source"] if split == "train" else example["source"],
         "prompt": [{
             "role": "user",
             "content": question
@@ -105,25 +107,26 @@ def process_and_save(dataset, split, output_basename):
     df.to_json(f"{output_basename}.json", orient="records")
 
 def main():
-    # Load dataset
+    # # Load dataset
     ds = load_dataset("chuxuan/RL-gen-code-train-rl")
 
-    # Create output directory
+    # # Create output directory
     output_dir = "data"
     os.makedirs(output_dir, exist_ok=True)
 
-    # Filter out apps, lcbv5, primeintellect
+    # # Filter out apps, lcbv5, primeintellect
     exclude_sources = ["apps", "lcbv5", "primeintellect"]
     filtered_data = ds["train"].filter(lambda x: x["data_source"] not in exclude_sources)
 
-    # Shuffle the filtered dataset
+    # # Shuffle the filtered dataset
     coding_data_train = filtered_data.shuffle(seed=42)
 
-    # Save datasets
+    # # Save datasets
     process_and_save(coding_data_train, split="train", output_basename=f"{output_dir}/chuxuan_coding_train")
 
     ds_val = load_dataset("chuxuan/RL-gen-code-test")
-    coding_data_validation = ds_val["train"]
+    exclude_sources = ["lcbv5"]
+    coding_data_validation = ds_val["train"].filter(lambda x: x["source"] not in exclude_sources)
     process_and_save(coding_data_validation, split="validation", output_basename=f"{output_dir}/chuxuan_coding_validation")
 
 if __name__ == "__main__":

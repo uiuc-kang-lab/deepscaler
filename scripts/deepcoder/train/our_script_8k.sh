@@ -68,7 +68,7 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
     trainer.project_name='qwen-code' \
-    trainer.experiment_name='14b-16k-grpo+-code' \
+    trainer.experiment_name='qwen-code-newval' \
     +trainer.val_before_train=True \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \

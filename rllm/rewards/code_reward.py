@@ -331,8 +331,9 @@ class RewardCodeFn(RewardFn):
             test_fn = taco_run_test
             tests = safe_parse(tests)
             is_correct = check_correctness(tests, model_code, test_fn)
-        elif dataset_name == "codeforces":
+        elif dataset_name == "codeforces": #call
             test_fn = codeforces_run_test
+            tests = safe_parse(tests)
             is_correct = check_correctness(tests, model_code, test_fn)
         elif dataset_name == "leetcode":
             is_correct = leetcode_check_correctness(tests, model_code)
