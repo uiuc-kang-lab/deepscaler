@@ -328,6 +328,8 @@ class RewardCodeFn(RewardFn):
         # Tests: Dictionary[Lists] - CodeContests, Taco/Apps
         is_correct = False
         print(f"CURRENTLY CALCULATING REWARD ON DATA SAMPLE FROM {dataset_name}")
+        print(f"CURRENTLY CALCULATING REWARD ON CODE {model_code}")
+        print(f"CURRENTLY CALCULATING REWARD ON RESPONSE {input.model_response}")
         if dataset_name in ["taco", "apps", "code_contests", "eurus"]: # call
             test_fn = taco_run_test
             tests = safe_parse(tests)

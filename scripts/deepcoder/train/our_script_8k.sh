@@ -62,17 +62,14 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.n=8 \
     actor_rollout_ref.rollout.n_val=2 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
+    actor_rollout_ref.actor.shuffle=False \
     algorithm.kl_ctrl.kl_coef=0.001 \
     algorithm.mask_truncated_samples=True \
     trainer.default_local_dir=$rllm_root/checkpoints\
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
     trainer.project_name='qwen-code' \
-<<<<<<< HEAD
-    trainer.experiment_name='qwen-code-fulldata-all-debug' \
-=======
-    trainer.experiment_name='qwen-code-newval' \
->>>>>>> cc400fe3cbf3ab98903f9afd01d0fc354b1c53f5
+    trainer.experiment_name='qwen-code-debug' \
     +trainer.val_before_train=True \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \

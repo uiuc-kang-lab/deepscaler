@@ -75,6 +75,9 @@ class RewardManager():
 
             ground_truth = data_item.non_tensor_batch['reward_model']['ground_truth']
 
+            data_idx = data_item.non_tensor_batch["extra_info"]["index"]
+            print(f"PROCESSING DATA ID {data_idx}")
+
             # select rm_score
             data_source = data_item.non_tensor_batch['data_source']
             compute_score_fn = _select_rm_score_fn(data_source)
