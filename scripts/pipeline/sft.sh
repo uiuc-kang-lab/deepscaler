@@ -26,17 +26,17 @@ fi
 rllm_root=$(realpath "$(dirname "${BASH_SOURCE[0]}")"/../../)
 
 
-torchrun --nnodes=1 --nproc_per_node=4 -m verl.trainer.fsdp_sft_trainer \
+torchrun --standalone --nnodes=1 --nproc_per_node=4 -m verl.trainer.fsdp_sft_trainer \
     data.train_files=$rllm_root/data/math_code_mlvr_scs_train.parquet \
     data.val_files=$rllm_root/data/math_code_mlvr_scs_test.parquet \
     data.prompt_key=prompt \
     data.response_key=answer \
-    data.max_length=4096 \
+    data.max_length=2048 \
     data.truncation=right \
-    data.micro_batch_size=8 \
-    data.train_batch_size=32 \
+    data.micro_batch_size_per_gpu=2 \
+    data.train_batch_size=64 \
     model.partial_pretrain=Qwen/Qwen2.5-1.5B \
-    +model.system_prompt=DEEPSEEK_MATH_SYSTEM_PROMPT \
+    use_remove_padding=true \
     trainer.project_name=deepmath-sft \
     trainer.logger=['console','wandb'] \
     trainer.project_name='sft' \
@@ -47,9 +47,11 @@ torchrun --nnodes=1 --nproc_per_node=4 -m verl.trainer.fsdp_sft_trainer \
     trainer.default_local_dir=$rllm_root/checkpoints/sft-all \
     +trainer.n_gpus_per_node=4 \
     +trainer.nnodes=1 \
-    +trainer.test_freq=10 \
-    +trainer.save_freq=10 \
+    +trainer.test_freq=100 \
+    +trainer.save_freq=2000 \
     +trainer.entity_name=ddkang-uiuc-rl-generalization
+        # ulysses_sequence_parallel_size=2 \
+
     # trainer.resume_from_path=/workspace/checkpoints/deepseek-sft \
     # optim.lr=1e-4 \
     # trainer.resume_mode=auto \
