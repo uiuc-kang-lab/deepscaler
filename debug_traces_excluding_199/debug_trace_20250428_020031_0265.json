@@ -1,0 +1,5 @@
+{
+  "data_source": "kodcode",
+  "model_code": "def min_operations_to_transform(Y):\n    if Y == 0:\n        return 0  # though Y >= 1 per problem statement\n    count = bin(Y).count('1')\n    highest_bit_pos = Y.bit_length() - 1 if Y != 0 else 0\n    return count + (highest_bit_pos - 1)\n\nT = int(input())\nfor _ in range(T):\n    Y = int(input())\n    print(min_operations_to_transform(Y))",
+  "tests": "from solution import min_operations_to_transform, process_test_cases\n\ndef test_min_operations_to_transform():\n    assert min_operations_to_transform(2) == 1\n    assert min_operations_to_transform(3) == 2\n    assert min_operations_to_transform(17) == 5\n    assert min_operations_to_transform(1) == 0\n    assert min_operations_to_transform(4) == 2\n    assert min_operations_to_transform(10) == 4\n\ndef test_process_test_cases():\n    assert process_test_cases(3, [2, 3, 17]) == [1, 2, 5]\n    assert process_test_cases(2, [1, 4]) == [0, 2]"
+}

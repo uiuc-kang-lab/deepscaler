@@ -7,16 +7,19 @@ with open(file_path, "r") as f:
     data = json.load(f)
 
 # Define the keyword to search for
-keyword = "test_make_palindrome_example_1"
+keyword = "test_rotate_matrix_3x3"
 
 # Find all matching examples
 matches = []
 for idx, example in enumerate(data):
-    ground_truth = example.get("reward_model", {}).get("ground_truth", "")
-    if keyword in ground_truth:
+    if idx == 112:
         print(example)
         assert False
-        matches.append((idx, example))
+    # ground_truth = example.get("reward_model", {}).get("ground_truth", "")
+    # if keyword in ground_truth:
+    #     print(example)
+    #     assert False
+    #     matches.append((idx, example))
 
 # Print results
 print(f"Found {len(matches)} matching examples containing '{keyword}':\n")

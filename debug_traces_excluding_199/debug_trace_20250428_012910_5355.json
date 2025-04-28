@@ -1,0 +1,71 @@
+{
+  "data_source": "eurus",
+  "model_code": "def minFlips(S):\n    count0 = 0  # Starting with '0'\n    count1 = 0  # Starting with '1'\n    for i in range(len(S)):\n        expected0 = i % 2  # For starting with '0', the expected bit is 0 if even index\n        expected1 = 1 - expected0  # For starting with '1', the expected bit is 1 if even index\n        current = int(S[i])\n        # Calculate cost for starting with '0'\n        cost0 = 0\n        if current != expected0:\n            cost0 += 1\n        # Calculate cost for starting with '1'\n        cost1 = 0\n        if current != expected1:\n            cost1 += 1\n        # Add to the respective counts\n        count0 += cost0\n        count1 += cost1\n    return min(count0, count1)",
+  "tests": {
+    "fn_name": "minFlips",
+    "inputs": [
+      [
+        "01010101"
+      ],
+      [
+        "11111111"
+      ],
+      [
+        "00000000"
+      ],
+      [
+        "10101010"
+      ],
+      [
+        "00110101"
+      ],
+      [
+        "0"
+      ],
+      [
+        "1"
+      ],
+      [
+        "10"
+      ],
+      [
+        "11"
+      ],
+      [
+        "00"
+      ]
+    ],
+    "outputs": [
+      [
+        0
+      ],
+      [
+        4
+      ],
+      [
+        4
+      ],
+      [
+        0
+      ],
+      [
+        2
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        1
+      ],
+      [
+        1
+      ]
+    ]
+  }
+}

@@ -1,0 +1,5 @@
+{
+  "data_source": "kodcode",
+  "model_code": "from collections import Counter\n\ndef can_form_palindrome(s):\n    counts = Counter(s)\n    odd_counts = 0\n    for v in counts.values():\n        if v % 2 != 0:\n            odd_counts += 1\n    return \"YES\" if odd_counts <= 1 else \"NO\"",
+  "tests": "from solution import can_form_palindrome\n\ndef test_even_length_palindrome():\n    assert can_form_palindrome(\"aabb\") == \"YES\"\n    \ndef test_no_palindrome_possible():\n    assert can_form_palindrome(\"abc\") == \"NO\"\n    \ndef test_odd_length_palindrome():\n    assert can_form_palindrome(\"racecar\") == \"YES\"\n    \ndef test_long_palindrome_possible():\n    assert can_form_palindrome(\"aabbhijkkjih\") == \"YES\"\n    \ndef test_single_character():\n    assert can_form_palindrome(\"a\") == \"YES\"\n    \ndef test_two_different_characters():\n    assert can_form_palindrome(\"ab\") == \"NO\"\n    \ndef test_palindrome_with_odd_char_count():\n    assert can_form_palindrome(\"aaabbbb\") == \"YES\""
+}

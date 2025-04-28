@@ -1,0 +1,71 @@
+{
+  "data_source": "eurus",
+  "model_code": "s = input().strip()\ncount0 = 0\ncount1 = 0\n\nfor i, c in enumerate(s):\n    # Determine expected characters for starting with '0' and '1'\n    expected0 = '0' if i % 2 == 0 else '1'\n    expected1 = '1' if i % 2 == 0 else '0'\n    \n    # Count flips for both cases\n    if c != expected0:\n        count0 += 1\n    if c != expected1:\n        count1 += 1\n\nprint(min(count0, count1))",
+  "tests": {
+    "fn_name": "minFlips",
+    "inputs": [
+      [
+        "01010101"
+      ],
+      [
+        "11111111"
+      ],
+      [
+        "00000000"
+      ],
+      [
+        "10101010"
+      ],
+      [
+        "00110101"
+      ],
+      [
+        "0"
+      ],
+      [
+        "1"
+      ],
+      [
+        "10"
+      ],
+      [
+        "11"
+      ],
+      [
+        "00"
+      ]
+    ],
+    "outputs": [
+      [
+        0
+      ],
+      [
+        4
+      ],
+      [
+        4
+      ],
+      [
+        0
+      ],
+      [
+        2
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        1
+      ],
+      [
+        1
+      ]
+    ]
+  }
+}

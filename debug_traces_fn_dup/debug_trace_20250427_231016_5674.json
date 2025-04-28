@@ -1,0 +1,71 @@
+{
+  "data_source": "eurus",
+  "model_code": "s = input().strip()\n\nflips_a = 0\nflips_b = 0\n\nfor i in range(len(s)):\n    c = s[i]\n    expected_a = 0 if i % 2 == 0 else 1\n    expected_b = 1 if i % 2 == 0 else 0\n    if c != expected_a:\n        flips_a += 1\n    if c != expected_b:\n        flips_b += 1\n\nprint(min(flips_a, flips_b))",
+  "tests": {
+    "fn_name": "minFlips",
+    "inputs": [
+      [
+        "01010101"
+      ],
+      [
+        "11111111"
+      ],
+      [
+        "00000000"
+      ],
+      [
+        "10101010"
+      ],
+      [
+        "00110101"
+      ],
+      [
+        "0"
+      ],
+      [
+        "1"
+      ],
+      [
+        "10"
+      ],
+      [
+        "11"
+      ],
+      [
+        "00"
+      ]
+    ],
+    "outputs": [
+      [
+        0
+      ],
+      [
+        4
+      ],
+      [
+        4
+      ],
+      [
+        0
+      ],
+      [
+        2
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        1
+      ],
+      [
+        1
+      ]
+    ]
+  }
+}

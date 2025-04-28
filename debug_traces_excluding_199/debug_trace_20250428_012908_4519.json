@@ -1,0 +1,71 @@
+{
+  "data_source": "eurus",
+  "model_code": "def minFlips():\n    S = input().strip()\n    n = len(S)\n    flip0 = 0\n    flip1 = 0\n    for i in range(n):\n        # Expected for starting with '0'\n        expected0 = '0' if (i % 2 == 0) else '1'\n        if S[i] != expected0:\n            flip0 += 1\n        # Expected for starting with '1'\n        expected1 = '1' if (i % 2 == 0) else '0'\n        if S[i] != expected1:\n            flip1 += 1\n    return min(flip0, flip1)\n\n# Example usage\nmin_flips = minFlips()\nprint(min_flips)",
+  "tests": {
+    "fn_name": "minFlips",
+    "inputs": [
+      [
+        "01010101"
+      ],
+      [
+        "11111111"
+      ],
+      [
+        "00000000"
+      ],
+      [
+        "10101010"
+      ],
+      [
+        "00110101"
+      ],
+      [
+        "0"
+      ],
+      [
+        "1"
+      ],
+      [
+        "10"
+      ],
+      [
+        "11"
+      ],
+      [
+        "00"
+      ]
+    ],
+    "outputs": [
+      [
+        0
+      ],
+      [
+        4
+      ],
+      [
+        4
+      ],
+      [
+        0
+      ],
+      [
+        2
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        0
+      ],
+      [
+        1
+      ],
+      [
+        1
+      ]
+    ]
+  }
+}

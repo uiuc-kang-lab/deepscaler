@@ -1,0 +1,5 @@
+{
+  "data_source": "kodcode",
+  "model_code": "def compress(s):\n    if not s:\n        return s\n    res = []\n    current = s[0]\n    count = 1\n    for c in s[1:]:\n        if c == current:\n            count += 1\n        else:\n            res.append(current + str(count))\n            current = c\n            count = 1\n    res.append(current + str(count))\n    compressed = ''.join(res)\n    if len(compressed) < len(s):\n        return compressed\n    else:\n        return s",
+  "tests": "{'stdin': ['aabcccccaaa', 'aaa', 'bbbbbcccd', 'abcdef', 'aabb', 'aabbcc', 'a', 'z'], 'stdout': ['a2b1c5a3', 'a3', 'b5c3d1', 'abcdef', 'aabb', 'aabbcc', 'a', 'z']}"
+}

@@ -11,6 +11,7 @@ from multiprocessing import Manager
 from typing import List, Dict, Union
 import random
 import ast 
+import os
 
 #from rllm.rewards.code_utils.code_contests import run_test as code_contests_run_test
 from rllm.rewards.code_utils.livecodebench import run_test as lcb_run_test
@@ -330,6 +331,26 @@ class RewardCodeFn(RewardFn):
         print(f"CURRENTLY CALCULATING REWARD ON DATA SAMPLE FROM {dataset_name}")
         print(f"CURRENTLY CALCULATING REWARD ON CODE {model_code}")
         print(f"CURRENTLY CALCULATING REWARD ON RESPONSE {input.model_response}")
+        print(f"CURRENTLY CALCULATING REWARD ON TESTCASE {tests}")
+
+        # Ensure output directory exists
+        output_dir = "/home/ubuntu/chuxuan3/rllm/debug_traces_excluding_199/"
+        os.makedirs(output_dir, exist_ok=True)
+        timestamp = time.strftime("%Y%m%d_%H%M%S")
+        random_suffix = random.randint(0, 9999)
+        output_path = os.path.join(output_dir, f"debug_trace_{timestamp}_{random_suffix:04d}.json")
+
+        # Append single entry per file (no need to load old data)
+        debug_data = {
+            "data_source": dataset_name,
+            "model_code": model_code,
+            "tests": tests
+        }
+
+        with open(output_path, "w") as f:
+            json.dump(debug_data, f, indent=2)
+
+        print(f"✅ Appended model_code and tests to {output_path}")
         if dataset_name in ["taco", "apps", "code_contests", "eurus"]: # call
             test_fn = taco_run_test
             tests = safe_parse(tests)
