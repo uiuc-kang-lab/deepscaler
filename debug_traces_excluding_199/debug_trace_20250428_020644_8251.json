@@ -1,0 +1,5 @@
+{
+  "data_source": "kodcode",
+  "model_code": "T = int(input())\nfor _ in range(T):\n    Y = int(input())\n    steps = 0\n    while Y > 1:\n        if Y % 2 == 0:\n            Y = Y // 2\n            steps += 1\n        else:\n            steps += 1\n            Y -= 1\n            while Y % 2 == 0:\n                Y = Y // 2\n                steps += 1\n    print(steps)",
+  "tests": "from solution import min_operations_to_transform, process_test_cases\n\ndef test_min_operations_to_transform():\n    assert min_operations_to_transform(2) == 1\n    assert min_operations_to_transform(3) == 2\n    assert min_operations_to_transform(17) == 5\n    assert min_operations_to_transform(1) == 0\n    assert min_operations_to_transform(4) == 2\n    assert min_operations_to_transform(10) == 4\n\ndef test_process_test_cases():\n    assert process_test_cases(3, [2, 3, 17]) == [1, 2, 5]\n    assert process_test_cases(2, [1, 4]) == [0, 2]"
+}

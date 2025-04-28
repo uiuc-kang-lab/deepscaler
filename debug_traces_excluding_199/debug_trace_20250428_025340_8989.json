@@ -1,0 +1,5 @@
+{
+  "data_source": "kodcode",
+  "model_code": "n = int(input())\nthicknesses = list(map(int, input().split()))\nT = int(input())\n\nthicknesses.sort()\nprefix = [0]\nfor thickness in thicknesses:\n    prefix.append(prefix[-1] + thickness)\n\nmax_books = 0\nfor k in range(n, 0, -1):\n    if prefix[k] <= T:\n        max_books = k\n        break\n\nprint(max_books)",
+  "tests": "def test_single_book():\n    assert max_books_on_shelf(1, [100], 50) == 0\n    assert max_books_on_shelf(1, [30], 30) == 1\n\ndef test_multiple_books():\n    assert max_books_on_shelf(5, [10, 20, 30, 40, 50], 100) == 4\n    assert max_books_on_shelf(3, [15, 5, 10], 30) == 3\n    assert max_books_on_shelf(4, [25, 10, 30, 20], 50) == 2\n\ndef test_maximum_thickness():\n    assert max_books_on_shelf(10, [10, 10, 10, 10, 10, 10, 10, 10, 10, 10], 100) == 10\n    assert max_books_on_shelf(6, [50, 20, 20, 10, 10, 10], 100) == 5\n    \n# Running these tests will require the function to be placed into a module named 'solution',\n# and then you can run pytest on this file containing the test cases."
+}

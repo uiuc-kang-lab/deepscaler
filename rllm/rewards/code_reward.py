@@ -111,6 +111,11 @@ def check_correctness(tests: Union[List[Dict[str, str]], Dict[str, List[str]]], 
                 'outputs': [tests['outputs'][i] for i in selected_indices]
             }
             tests = selected_tests
+        else:
+            tests = {
+                'inputs': [tests['inputs'][i] for i in range(total_tests)],
+                'outputs': [tests['outputs'][i] for i in range(total_tests)]
+            }
         num_tests = len(tests['inputs'])
     
     process = multiprocessing.Process(

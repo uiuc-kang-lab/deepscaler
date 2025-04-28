@@ -1,0 +1,5 @@
+{
+  "data_source": "kodcode",
+  "model_code": "def compress(input_string):\n    if not input_string:\n        return \"\"\n    \n    prev = None\n    count = 0\n    result = []\n    \n    for char in input_string:\n        if char == prev:\n            count += 1\n        else:\n            if prev is not None:\n                result.append((prev, count))\n            prev = char\n            count = 1\n    if prev is not None:\n        result.append((prev, count))\n    \n    compressed = []\n    for char, count in result:\n        if count == 1:\n            compressed.append(char)\n        else:\n            compressed.append(f\"{char}{count}\")\n    compressed_str = ''.join(compressed)\n    \n    if len(compressed_str) < len(input_string):\n        return compressed_str\n    else:\n        return input_string",
+  "tests": "{'stdin': ['aabcccccaaa', 'aaa', 'bbbbbcccd', 'abcdef', 'aabb', 'aabbcc', 'a', 'z'], 'stdout': ['a2b1c5a3', 'a3', 'b5c3d1', 'abcdef', 'aabb', 'aabbcc', 'a', 'z']}"
+}

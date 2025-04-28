@@ -1,0 +1,5 @@
+{
+  "data_source": "kodcode",
+  "model_code": "def maxSum(nums):\n    if not nums:\n        return 0\n    n = len(nums)\n    include = [0] * n\n    exclude = [0] * n\n    \n    include[0] = nums[0]\n    exclude[0] = 0\n    \n    for i in range(1, n):\n        include[i] = nums[i] + exclude[i-1]\n        exclude[i] = max(include[i-1], exclude[i-1])\n    \n    return max(include[-1], exclude[-1])",
+  "tests": "def test_maxSum():\n    assert maxSum([3, 2, 5, 10, 7]) == 15\n    assert maxSum([5, 5, 10, 100, 10, 5]) == 110\n    assert maxSum([]) == 0\n    assert maxSum([1, 2, 3]) == 4\n    assert maxSum([-5, 10, -5, 10, -5]) == 20\n    assert maxSum([5]) == 5\n    assert maxSum([5, 3]) == 5\n    assert maxSum([10, 5, 10]) == 20\n\ntest_maxSum()"
+}

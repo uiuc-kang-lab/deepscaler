@@ -1,0 +1,5 @@
+{
+  "data_source": "eurus",
+  "model_code": "def minFlips(s):\n    min_flips = float('inf')\n    for start in [0, 1]:\n        flips = 0\n        for i, c in enumerate(s):\n            if i % 2 == 0:\n                expected = str(start)\n            else:\n                expected = str(1 - start)\n            if c != expected:\n                flips += 1\n        if flips < min_flips:\n            min_flips = flips\n    return min_flips",
+  "tests": "{\"fn_name\": \"minFlips\", \"inputs\": [[\"01010101\"], [\"11111111\"], [\"00000000\"], [\"10101010\"], [\"00110101\"], [\"0\"], [\"1\"], [\"10\"], [\"11\"], [\"00\"]], \"outputs\": [[0], [4], [4], [0], [2], [0], [0], [0], [1], [1]]}"
+}

@@ -1,0 +1,5 @@
+{
+  "data_source": "kodcode",
+  "model_code": "def compress(s):\n    if not s:\n        return s\n    compressed = \"\"\n    prev_char = s[0]\n    current_count = 1\n    for c in s[1:]:\n        if c == prev_char:\n            current_count += 1\n        else:\n            compressed += prev_char + str(current_count)\n            prev_char = c\n            current_count = 1\n    # Add the last run\n    compressed += prev_char + str(current_count)\n    # Compare lengths\n    return s if len(compressed) >= len(s) else compressed",
+  "tests": "{'stdin': ['aabcccccaaa', 'aaa', 'bbbbbcccd', 'abcdef', 'aabb', 'aabbcc', 'a', 'z'], 'stdout': ['a2b1c5a3', 'a3', 'b5c3d1', 'abcdef', 'aabb', 'aabbcc', 'a', 'z']}"
+}

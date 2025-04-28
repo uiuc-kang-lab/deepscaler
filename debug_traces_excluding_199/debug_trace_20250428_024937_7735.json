@@ -1,0 +1,5 @@
+{
+  "data_source": "eurus",
+  "model_code": "def minFlips(S):\n    count_a = 0\n    count_b = 0\n    for i in range(len(S)):\n        current = S[i]\n        if i % 2 == 0:\n            desired_a = '0'\n            desired_b = '1'\n        else:\n            desired_a = '1'\n            desired_b = '0'\n        if current != desired_a:\n            count_a += 1\n        if current != desired_b:\n            count_b += 1\n    return min(count_a, count_b)",
+  "tests": "{\"fn_name\": \"minFlips\", \"inputs\": [[\"01010101\"], [\"11111111\"], [\"00000000\"], [\"10101010\"], [\"00110101\"], [\"0\"], [\"1\"], [\"10\"], [\"11\"], [\"00\"]], \"outputs\": [[0], [4], [4], [0], [2], [0], [0], [0], [1], [1]]}"
+}

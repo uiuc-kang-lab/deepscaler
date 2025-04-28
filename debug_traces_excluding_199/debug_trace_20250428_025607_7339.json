@@ -1,0 +1,5 @@
+{
+  "data_source": "kodcode",
+  "model_code": "def compress(input_string):\n    if not input_string:\n        return input_string\n    \n    result = []\n    current_char = None\n    current_count = 0\n    \n    for char in input_string:\n        if char == current_char:\n            current_count += 1\n        else:\n            if current_char is not None:\n                if current_count == 1:\n                    result.append(current_char)\n                else:\n                    result.append(f\"{current_char}{current_count}\")\n            current_char = char\n            current_count = 1\n    \n    # Add the last group\n    if current_char is not None:\n        if current_count == 1:\n            result.append(current_char)\n        else:\n            result.append(f\"{current_char}{current_count}\")\n    \n    # Compare lengths\n    if len(result) < len(input_string):\n        return ''.join(result)\n    else:\n        return input_string",
+  "tests": "{'stdin': ['aabcccccaaa', 'aaa', 'bbbbbcccd', 'abcdef', 'aabb', 'aabbcc', 'a', 'z'], 'stdout': ['a2b1c5a3', 'a3', 'b5c3d1', 'abcdef', 'aabb', 'aabbcc', 'a', 'z']}"
+}
