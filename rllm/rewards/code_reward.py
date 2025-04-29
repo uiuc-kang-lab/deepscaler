@@ -85,14 +85,6 @@ def check_correctness(tests: Union[List[Dict[str, str]], Dict[str, List[str]]], 
     Raises:
         AssertionError: If test results list is empty
     """
-    manager = Manager()
-    test_results = manager.list()
-    def evaluate_code(tests, generation, debug, test_results, test_fn):
-        """Helper function to run tests in separate process."""
-        try:
-            test_results.append(test_fn(tests, test=generation, debug=debug, timeout=timeout_per_test))
-        except Exception as e:
-            print(f"Error in evaluate_code: {e}")
     if isinstance(tests, list):
         total_tests = len(tests)
         if total_tests > max_tests:
@@ -118,22 +110,14 @@ def check_correctness(tests: Union[List[Dict[str, str]], Dict[str, List[str]]], 
             }
         num_tests = len(tests['inputs'])
     
-    process = multiprocessing.Process(
-        target=evaluate_code,
-        args=(tests, code, False, test_results, test_fn)
-    )
-    process.start()
-    process.join()
-
-    if process.is_alive():
-        process.kill()
-    test_results = test_results[:]
-    if len(test_results) == 0:
+    try:
+        results = test_fn(tests,
+                          test=code,
+                          debug=False,
+                          timeout=timeout_per_test)
+    except Exception:
         return False
-    #assert len(test_results) == 1, f"Expected exactly one test result, but got {test_results}"
-    test_results = test_results[0]
-    test_results = [r==True for r in test_results]
-    return all(test_results)
+    return all(r is True for r in results)
 
 
 def postprocess_lcb_sample(sample):
@@ -339,7 +323,7 @@ class RewardCodeFn(RewardFn):
         print(f"CURRENTLY CALCULATING REWARD ON TESTCASE {tests}")
 
         # Ensure output directory exists
-        output_dir = "/home/ubuntu/chuxuan3/rllm/debug_traces_taco_batch17/"
+        output_dir = "/home/ubuntu/chuxuan3/rllm/debug_traces_eurus_taco_batch8/"
         os.makedirs(output_dir, exist_ok=True)
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         random_suffix = random.randint(0, 9999)
