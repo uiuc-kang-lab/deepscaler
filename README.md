@@ -20,6 +20,32 @@
 
 </div>
 
+## Steps for Our Run & Checklists (Chuxuan's note)
+
+1. Install Miniconda
+
+2. Git clone and checkout this branch.
+
+3. Generate our data
+```bash
+python scripts/data/chuxuan_dataset2.py
+```
+
+4. Wandb init
+
+5. Start Tmux, redirect outputs to a new log; 
+
+6. Update the trace dir in rllm/rewards line 326.
+
+7. Run script
+```bash
+export MODEL_PATH="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
+./scripts/deepcoder/train/our_script_8k.sh --model $MODEL_PATH
+```
+
+Eurus + DeepCoder TACO: https://wandb.ai/ddkang-uiuc-rl-generalization/qwen-code/runs/ls3dae28
+
+Kodcode TACO: https://wandb.ai/ddkang-uiuc-rl-generalization/qwen-code/runs/rb9cyfwc.
 
 ## Overview
 

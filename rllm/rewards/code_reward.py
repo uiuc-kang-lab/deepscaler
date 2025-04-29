@@ -317,13 +317,13 @@ class RewardCodeFn(RewardFn):
         # Tests: List[Dictionary] - Codeforces, LiveCodeBench
         # Tests: Dictionary[Lists] - CodeContests, Taco/Apps
         is_correct = False
-        print(f"CURRENTLY CALCULATING REWARD ON DATA SAMPLE FROM {dataset_name}")
-        print(f"CURRENTLY CALCULATING REWARD ON CODE {model_code}")
-        print(f"CURRENTLY CALCULATING REWARD ON RESPONSE {input.model_response}")
-        print(f"CURRENTLY CALCULATING REWARD ON TESTCASE {tests}")
+        # print(f"CURRENTLY CALCULATING REWARD ON DATA SAMPLE FROM {dataset_name}")
+        # print(f"CURRENTLY CALCULATING REWARD ON CODE {model_code}")
+        # print(f"CURRENTLY CALCULATING REWARD ON RESPONSE {input.model_response}")
+        # print(f"CURRENTLY CALCULATING REWARD ON TESTCASE {tests}")
 
         # Ensure output directory exists
-        output_dir = "/home/ubuntu/chuxuan3/rllm/debug_traces_eurus_taco_batch8/"
+        output_dir = "/home/ubuntu/chuxuan3/rllm/debug_traces_0419/"
         os.makedirs(output_dir, exist_ok=True)
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         random_suffix = random.randint(0, 9999)
