@@ -339,7 +339,7 @@ class RewardCodeFn(RewardFn):
         print(f"CURRENTLY CALCULATING REWARD ON TESTCASE {tests}")
 
         # Ensure output directory exists
-        output_dir = "/home/ubuntu/chuxuan3/rllm/debug_traces_excluding_199/"
+        output_dir = "/home/ubuntu/chuxuan3/rllm/debug_traces_taco_batch17/"
         os.makedirs(output_dir, exist_ok=True)
         timestamp = time.strftime("%Y%m%d_%H%M%S")
         random_suffix = random.randint(0, 9999)

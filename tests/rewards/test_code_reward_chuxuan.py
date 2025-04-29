@@ -33,13 +33,18 @@ def test_reward_kodcode(model_code, tests):
 
 
 if __name__ == "__main__":
-    output_dir = "/home/ubuntu/chuxuan3/rllm/debug_traces/"
+    output_dir = "/home/ubuntu/chuxuan3/rllm/debug_traces_all/"
     for filename in os.listdir(output_dir):
-        if filename.endswith(".json"):
+        if filename.endswith(".json") and "051" in filename:
             print("checking json file: ", filename)
+            
             file_path = os.path.join(output_dir, filename)
-            with open(file_path, "r") as f:
-                data = json.load(f)
+
+            try:
+                with open(file_path, "r") as f:
+                    data = json.load(f)
+            except:
+                continue
 
             # Extract required fields
             data_source = data.get("data_source", None)

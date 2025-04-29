@@ -28,8 +28,8 @@ rllm_root=$(realpath "$(dirname "${BASH_SOURCE[0]}")"/../../../)
 # Train over 4 nodes, 8 A100-80GB GPUs per node.
 python3 -m verl.trainer.main_ppo \
     algorithm.adv_estimator=grpo \
-    data.train_files=$rllm_root/data/fn_dup.parquet \
-    data.val_files=$rllm_root/data/fn_dup.parquet \
+    data.train_files=$rllm_root/data/coding_train_batch11_index333.parquet \
+    data.val_files=$rllm_root/data/coding_train_batch11_index333.parquet \
     data.train_batch_size=8 \
     data.val_batch_size=512 \
     data.max_prompt_length=2048 \
@@ -69,7 +69,7 @@ python3 -m verl.trainer.main_ppo \
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
     trainer.project_name='qwen-code' \
-    trainer.experiment_name='qwen-code-debug' \
+    trainer.experiment_name='index333' \
     +trainer.val_before_train=True \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \
