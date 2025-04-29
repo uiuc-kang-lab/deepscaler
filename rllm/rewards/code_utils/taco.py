@@ -24,6 +24,7 @@ import platform
 from .utils import BASE_IMPORTS
 
 import pdb
+CAP_BYTES  = 1_000_000 
 class ForkedPDB(pdb.Pdb):
     """A Pdb subclass that may be used from a forked multiprocessing child."""
 
@@ -103,16 +104,19 @@ def run_test(in_outs, test=None, debug=False, timeout=TIMEOUT):
         if debug:
             print(f"loading test code = {datetime.now().time()}")
         if which_type == CODE_TYPE.call_based:
-            synthesized_code = synthesize_cb_code(test, debug)
-            method_func = compile_and_get_func(synthesized_code, which_type, method_name, timeout=timeout, debug=debug)
+            assert False
+            # synthesized_code = synthesize_cb_code(test, debug)
+            # method_func = compile_and_get_func(synthesized_code, which_type, method_name, timeout=timeout, debug=debug)
         elif which_type == CODE_TYPE.standard_input:
             synthesized_code, exec_code = synthesize_std_code(test, debug)
-            method_func = compile_and_get_func(synthesized_code, which_type, method_name, timeout=timeout, debug=debug)
+            method_func = True
+            # method_func = compile_and_get_func(synthesized_code, which_type, method_name, timeout=timeout, debug=debug)
         if not method_func:
             results.append(-2)
             return results
         else:
             if which_type == CODE_TYPE.call_based:  # Call-based
+                assert False
                 detail_results, debug_infos = execute_cb_code(method_func, inputs_list, outputs_list, timeout=timeout, early_stop=True, debug=debug)
             elif which_type == CODE_TYPE.standard_input:
                 detail_results = execute_std_code(method_func, exec_code, inputs_list, outputs_list, timeout=timeout, early_stop=True, debug=debug)
@@ -369,7 +373,7 @@ def execute_std_code(method, synthesized_code, inputs_list, outputs_list, timeou
             temp_file_name = temp_input.name
             stdout, stderr = "", ""
             try:
-                result = subprocess.run(['bash', '-c', 'ulimit -v 10485760; python3 ' + temp_program_path], 
+                result = subprocess.run(['bash', '-c', 'ulimit -v 524288; python3 ' + temp_program_path], 
                                         stdin=temp_input,
                                         stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE,
