@@ -366,17 +366,12 @@ def execute_std_code(method, synthesized_code, inputs_list, outputs_list, timeou
         if isinstance(outputs, list):
             outputs = [str(k) for k in outputs]
             outputs = "\n".join(outputs)
-######################################################################
-# inside `for i, inputs in enumerate(inputs_list):`
-######################################################################
+
         with tempfile.NamedTemporaryFile(mode='w+') as temp_input:
             temp_input.write(inputs)
             temp_input.flush()
             temp_input.seek(0)
 
-            #
-            # ---------- start the child process FIRST ----------
-            #
             cmd = f"ulimit -v 524288; exec python3 {temp_program_path}"
             proc = subprocess.Popen(
                 ["bash", "-c", cmd],
@@ -405,7 +400,6 @@ def execute_std_code(method, synthesized_code, inputs_list, outputs_list, timeou
                     stdout, stderr = out.rstrip("\n"), err
 
             except subprocess.TimeoutExpired:
-                # ---------- kill the whole process group ----------
                 try:
                     os.killpg(proc.pid, signal.SIGKILL)
                 except ProcessLookupError:
@@ -414,11 +408,6 @@ def execute_std_code(method, synthesized_code, inputs_list, outputs_list, timeou
                 exec_code   = -1
                 return_code = -9
                 stdout, stderr = "", "TIMEOUT"
-
-######################################################################
-# everything below (compare outputs, fill exec_results, etc.)
-# stays exactly the same
-######################################################################
 
             except Exception as e:
                 print(e, temp_file_name)
