@@ -366,31 +366,60 @@ def execute_std_code(method, synthesized_code, inputs_list, outputs_list, timeou
         if isinstance(outputs, list):
             outputs = [str(k) for k in outputs]
             outputs = "\n".join(outputs)
+######################################################################
+# inside `for i, inputs in enumerate(inputs_list):`
+######################################################################
         with tempfile.NamedTemporaryFile(mode='w+') as temp_input:
             temp_input.write(inputs)
             temp_input.flush()
             temp_input.seek(0)
-            temp_file_name = temp_input.name
-            stdout, stderr = "", ""
+
+            #
+            # ---------- start the child process FIRST ----------
+            #
+            cmd = f"ulimit -v 524288; exec python3 {temp_program_path}"
+            proc = subprocess.Popen(
+                ["bash", "-c", cmd],
+                stdin=temp_input,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                preexec_fn=os.setsid,  # give it its own process-group
+                text=True
+            )
+
             try:
-                result = subprocess.run(['bash', '-c', 'ulimit -v 524288; python3 ' + temp_program_path], 
-                                        stdin=temp_input,
-                                        stdout=subprocess.PIPE,
-                                        stderr=subprocess.PIPE,
-                                        preexec_fn=os.setsid,
-                                        universal_newlines=True,
-                                        timeout=timeout,
-                                        text=True)
-                
-                stdout, stderr = result.stdout, result.stderr
-                return_code = result.returncode
-                # result = subprocess.run(['python3', temp_program_path], input=inputs, text=True, capture_output=True, timeout=timeout)
-                exec_code = 999
-            except subprocess.TimeoutExpired as e:
-                print(e, temp_file_name)
-                stderr = "TIMEOUT"
+                # ---------- wait for completion / timeout ----------
+                CAP_BYTES   = 1_000_000        # 1 MiB output cap
+                TIME_LIMIT  = timeout          # seconds
+
+                out, err = proc.communicate(timeout=TIME_LIMIT)
+
+                # optional: check total output size
+                if len(out) + len(err) > CAP_BYTES:
+                    exec_code   = -1           # treat as timeout / too much output
+                    return_code = -9
+                    stdout, stderr = "", "TIMEOUT"
+                else:
+                    exec_code   = 999
+                    return_code = proc.returncode
+                    stdout, stderr = out.rstrip("\n"), err
+
+            except subprocess.TimeoutExpired:
+                # ---------- kill the whole process group ----------
+                try:
+                    os.killpg(proc.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass           # already gone
+
+                exec_code   = -1
                 return_code = -9
-                exec_code = -1
+                stdout, stderr = "", "TIMEOUT"
+
+######################################################################
+# everything below (compare outputs, fill exec_results, etc.)
+# stays exactly the same
+######################################################################
+
             except Exception as e:
                 print(e, temp_file_name)
                 return_code = -99
@@ -404,31 +433,6 @@ def execute_std_code(method, synthesized_code, inputs_list, outputs_list, timeou
                 exec_code = 1
             else:
                 exec_code = 0
-                # if return_code != 0:
-                #     try:
-                #         inputs_tmp_file = open(create_temp_file(inputs), 'r')
-                #         result = subprocess.run(['python', temp_program_path], stdin=inputs_tmp_file, text=True, capture_output=True, timeout=timeout)
-                #         assert result.returncode == 0
-                #         stdout = result.stdout
-                #         if compare_std_results(stdout, outputs, debug):
-                #             exec_code = 1
-                #         else:
-                #             exec_code = 0
-                #     except:
-                #         try:
-                #             inputs_tmp_file = 'input.txt'
-                #             with open(inputs_tmp_file, 'w') as ftemp:
-                #                 ftemp.write(inputs)
-                #             result = subprocess.run(['python', temp_program_path], text=True, timeout=timeout)
-                #             assert result.returncode == 0
-                #             stdout = open('output.txt').read()
-                #             if compare_std_results(stdout, outputs, debug):
-                #                 exec_code = 1
-                #             else:
-                #                 exec_code = 0
-                            
-                #         except:
-                #             exec_code = -3
         assert exec_code != -3
         exec_results[i] = (exec_code==1, EXECUTION_RESULTS[exec_code] if exec_code>-3 else EXECUTION_RESULTS[exec_code].format(return_code))
         if exec_code >= 0:
@@ -444,6 +448,78 @@ def execute_std_code(method, synthesized_code, inputs_list, outputs_list, timeou
         if early_stop and exec_code<=0:
             break
     return exec_results
+
+# def execute_std_code(method, synthesized_code, inputs_list, outputs_list, timeout, early_stop=False, debug=False):
+#     temp_program_path = create_temp_file(synthesized_code)
+#     if debug:
+#         print("Test program:", temp_program_path)
+#     assert isinstance(inputs_list, list) and isinstance(outputs_list, list)
+#     assert len(inputs_list) == len(outputs_list)
+#     exec_results = {}
+#     if debug:
+#         exec_results['debug'] = {}
+#     for i, inputs in enumerate(inputs_list):
+#         remove_tmp_files()
+#         outputs = outputs_list[i]
+#         if isinstance(inputs, list):
+#             inputs = [str(k) for k in inputs]
+#             inputs = "\n".join(inputs)
+#         if isinstance(outputs, list):
+#             outputs = [str(k) for k in outputs]
+#             outputs = "\n".join(outputs)
+#         with tempfile.NamedTemporaryFile(mode='w+') as temp_input:
+#             temp_input.write(inputs)
+#             temp_input.flush()
+#             temp_input.seek(0)
+#             temp_file_name = temp_input.name
+#             stdout, stderr = "", ""
+#             try:
+#                 result = subprocess.run(['bash', '-c', 'ulimit -v 524288; python3 ' + temp_program_path], 
+#                                         stdin=temp_input,
+#                                         stdout=subprocess.PIPE,
+#                                         stderr=subprocess.PIPE,
+#                                         preexec_fn=os.setsid,
+#                                         universal_newlines=True,
+#                                         timeout=timeout,
+#                                         text=True)
+                
+#                 stdout, stderr = result.stdout, result.stderr
+#                 return_code = result.returncode
+#                 # result = subprocess.run(['python3', temp_program_path], input=inputs, text=True, capture_output=True, timeout=timeout)
+#                 exec_code = 999
+#             except subprocess.TimeoutExpired as e:
+#                 print(e, temp_file_name)
+#                 stderr = "TIMEOUT"
+#                 return_code = -9
+#                 exec_code = -1
+#             except Exception as e:
+#                 print(e, temp_file_name)
+#                 return_code = -99
+#                 stderr = f"{e}"
+#                 exec_code = -2
+
+#         stdout = clean_stdout(stdout)
+
+#         if exec_code > 0:
+#             if compare_std_results(stdout, outputs, debug):
+#                 exec_code = 1
+#             else:
+#                 exec_code = 0
+#         assert exec_code != -3
+#         exec_results[i] = (exec_code==1, EXECUTION_RESULTS[exec_code] if exec_code>-3 else EXECUTION_RESULTS[exec_code].format(return_code))
+#         if exec_code >= 0:
+#             if debug:
+#                 print_debug_info(inputs=inputs, outputs=outputs, exec_outputs=stdout)
+#                 print("Stderr:", stderr)
+#                 exec_results['debug'][i] = {
+#                     'inputs': inputs,
+#                     'gt_outputs': outputs,
+#                     'exec_outputs': stdout,
+#                     'stderr': stderr
+#                 }
+#         if early_stop and exec_code<=0:
+#             break
+#     return exec_results
 
 def print_debug_info(inputs, outputs, exec_outputs):
     nl = "\n"
