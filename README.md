@@ -40,7 +40,7 @@ python scripts/data/chuxuan_dataset2.py
 7. Run script
 ```bash
 export MODEL_PATH="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
-./scripts/deepcoder/train/our_script_8k.sh --model $MODEL_PATH
+./scripts/deepcoder/train/our_script_8k_real.sh --model $MODEL_PATH
 ```
 
 Eurus + DeepCoder TACO: https://wandb.ai/ddkang-uiuc-rl-generalization/qwen-code/runs/ls3dae28
