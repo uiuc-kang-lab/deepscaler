@@ -35,7 +35,7 @@ python scripts/data/chuxuan_dataset2.py
 
 5. Start Tmux, redirect outputs to a new log; 
 
-6. Update the trace dir in rllm/rewards line 326.
+6. Update the trace dir in [rllm/rewards line 326](https://github.com/uiuc-kang-lab/rllm/blob/chuxuan/code-rl/rllm/rewards/code_reward.py#L326).
 
 7. Run script
 ```bash
