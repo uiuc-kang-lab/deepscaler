@@ -28,7 +28,7 @@ from omegaconf import DictConfig, open_dict
 from verl import DataProto
 from verl.single_controller.base import Worker
 from verl.single_controller.base.decorator import register, Dispatch
-from verl.utils import hf_tokenizer
+from verl.utils import hf_tokenizer, hf_processor
 from verl.utils.debug import log_gpu_memory_usage
 from verl.utils.fs import copy_local_path_from_hdfs
 from verl.utils.fsdp_utils import get_fsdp_wrap_policy, offload_fsdp_grad, init_fn, get_init_weight_context_manager
@@ -37,6 +37,7 @@ from verl.utils.fsdp_utils import offload_fsdp_optimizer, offload_fsdp_param_and
 from verl.utils.import_utils import import_external_libs
 from verl.utils.model import compute_position_id_with_mask
 from verl.utils.flops_counter import FlopsCounter
+from verl.utils.checkpoint.fsdp_checkpoint_manager import FSDPCheckpointManager
 from verl.workers.sharding_manager.fsdp_ulysses import FSDPUlyssesShardingManager
 
 from codetiming import Timer
@@ -158,6 +159,7 @@ class ActorRolloutRefWorker(Worker):
         # note that we have to create model in fp32. Otherwise, the optimizer is in bf16, which is incorrect
         # TODO(zhangchi.usc1992): 1. support create from random initialized model. 2. Support init with FSDP directly
         self.tokenizer = hf_tokenizer(local_path, trust_remote_code=trust_remote_code)
+        self.processor = hf_processor(local_path, trust_remote_code=trust_remote_code)
 
         torch_dtype = fsdp_config.get('model_dtype', None)
         if torch_dtype is None:
@@ -392,6 +394,11 @@ class ActorRolloutRefWorker(Worker):
 
         if self._is_actor:
             self.flops_counter = FlopsCounter(self.actor_model_config)
+            self.checkpoint_manager = FSDPCheckpointManager(
+                model=self.actor_module_fsdp,
+                optimizer=self.actor.actor_optimizer,
+                lr_scheduler=self.actor_lr_scheduler,
+                processing_class=self.processor if self.processor is not None else self.tokenizer)
 
         torch.cuda.empty_cache()
 
@@ -527,13 +534,20 @@ class ActorRolloutRefWorker(Worker):
         return output
 
     @register(dispatch_mode=Dispatch.ONE_TO_ALL)
-    def save_checkpoint(self, local_path, hdfs_path=None):
+    def save_checkpoint(self, local_path, hdfs_path=None, global_step=0, remove_previous_ckpt=False):
         assert self._is_actor
         import torch
         if self._is_offload_param:
             load_fsdp_param_and_grad(module=self.actor_module_fsdp,
                                      device_id=torch.cuda.current_device(),
                                      load_grad=self._is_offload_grad)
+            
+        self.checkpoint_manager.save_checkpoint(local_path=local_path,
+                                                hdfs_path=hdfs_path,
+                                                global_step=global_step,
+                                                remove_previous_ckpt=remove_previous_ckpt)
+        
+        torch.distributed.barrier()
 
         # TODO: support DCP and save sharded checkpoints
         import torch.distributed
@@ -542,18 +556,32 @@ class ActorRolloutRefWorker(Worker):
         with FSDP.state_dict_type(self.actor.actor_module, StateDictType.FULL_STATE_DICT, cfg):
             state_dict = self.actor.actor_module.state_dict()
         if self.rank == 0:
-            print(f'Saving actor checkpoint to {local_path}')
-            os.makedirs(local_path, exist_ok=True)
-            self.actor_module.save_pretrained(local_path, state_dict=state_dict)
-            self.tokenizer.save_pretrained(local_path)
+            full_checkpoint_local_path=f'{local_path}/checkpoint'
+            print(f'Saving actor checkpoint to {full_checkpoint_local_path}')
+            os.makedirs(full_checkpoint_local_path, exist_ok=True)
+            self.actor_module.save_pretrained(full_checkpoint_local_path, state_dict=state_dict)
+            self.tokenizer.save_pretrained(full_checkpoint_local_path)
             if hdfs_path is not None:
                 print(f'Uploading actor checkpoint to {hdfs_path}')
                 hdfs_io.makedirs(hdfs_path, exist_ok=True)
-                hdfs_io.copy(src=local_path, dst=hdfs_path)
+                hdfs_io.copy(src=full_checkpoint_local_path, dst=hdfs_path)
 
         torch.distributed.barrier()
         if self._is_offload_param:
             offload_fsdp_param_and_grad(module=self.actor_module_fsdp, offload_grad=self._is_offload_grad)
+
+    @register(dispatch_mode=Dispatch.ONE_TO_ALL)
+    def load_checkpoint(self, path, del_local_after_load=False):
+        if self._is_offload_param:
+            load_fsdp_param_and_grad(self.actor_module_fsdp)
+
+        self.checkpoint_manager.load_checkpoint(path=path, del_local_after_load=del_local_after_load)
+
+        if self._is_offload_param:
+            offload_fsdp_param_and_grad(module=self.actor_module_fsdp, offload_grad=self._is_offload_grad)
+
+        if self._is_offload_optimizer:
+            offload_fsdp_optimizer(self.actor_optimizer)
 
 
 class CriticWorker(Worker):
@@ -729,7 +757,11 @@ class CriticWorker(Worker):
                                             critic_optimizer=self.critic_optimizer)
 
         self.flops_counter = FlopsCounter(self.critic_model_config)
-
+        self.checkpoint_manager = FSDPCheckpointManager(
+            model=self.critic_module,
+            optimizer=self.critic_optimizer,
+            lr_scheduler=self.critic_lr_scheduler,
+            processing_class=self.processor if self.processor is not None else self.tokenizer)
         torch.cuda.empty_cache()
 
     @register(dispatch_mode=Dispatch.DP_COMPUTE_PROTO)
@@ -802,24 +834,46 @@ class CriticWorker(Worker):
                                      device_id=torch.cuda.current_device(),
                                      load_grad=self._is_offload_grad)
 
+        self.checkpoint_manager.save_checkpoint(local_path=local_path,
+                                                hdfs_path=hdfs_path,
+                                                global_step=global_step,
+                                                remove_previous_ckpt=remove_previous_ckpt)
+        
         # TODO: support DCP and save sharded checkpoints
-        import torch.distributed
-        from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, StateDictType, FullStateDictConfig
-        cfg = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
-        with FSDP.state_dict_type(self.critic_module, StateDictType.FULL_STATE_DICT, cfg):
-            state_dict = self.critic_module.state_dict()
-        if self.rank == 0:
-            print(f'Saving critic checkpoint to {local_path}')
-            os.makedirs(local_path, exist_ok=True)
-            self.critic_module._fsdp_wrapped_module.save_pretrained(local_path, state_dict=state_dict)
-            self.tokenizer.save_pretrained(local_path)
-            if hdfs_path is not None:
-                print(f'Uploading critic checkpoint to {hdfs_path}')
-                hdfs_io.makedirs(hdfs_path, exist_ok=True)
-                hdfs_io.copy(src=local_path, dst=hdfs_path)
+        # import torch.distributed
+        # from torch.distributed.fsdp import FullyShardedDataParallel as FSDP, StateDictType, FullStateDictConfig
+        # cfg = FullStateDictConfig(offload_to_cpu=True, rank0_only=True)
+        # with FSDP.state_dict_type(self.critic_module, StateDictType.FULL_STATE_DICT, cfg):
+        #     state_dict = self.critic_module.state_dict()
+        # if self.rank == 0:
+        #     print(f'Saving critic checkpoint to {local_path}')
+        #     os.makedirs(local_path, exist_ok=True)
+        #     self.critic_module._fsdp_wrapped_module.save_pretrained(local_path, state_dict=state_dict)
+        #     self.tokenizer.save_pretrained(local_path)
+        #     if hdfs_path is not None:
+        #         print(f'Uploading critic checkpoint to {hdfs_path}')
+        #         hdfs_io.makedirs(hdfs_path, exist_ok=True)
+        #         hdfs_io.copy(src=local_path, dst=hdfs_path)
 
         torch.distributed.barrier()
         if self._is_offload_param:
+            offload_fsdp_param_and_grad(module=self.critic_module, offload_grad=self._is_offload_grad)
+
+    @register(dispatch_mode=Dispatch.ONE_TO_ALL)
+    def load_checkpoint(self, path, del_local_after_load=True):
+        import torch
+        if self._is_offload_param:
+            load_fsdp_param_and_grad(module=self.critic_module,
+                                     device_id=torch.cuda.current_device(),
+                                     load_grad=self._is_offload_grad)
+
+        self.checkpoint_manager.load_checkpoint(path=path, del_local_after_load=del_local_after_load)
+
+        torch.distributed.barrier()
+        if self._is_offload_param:
+            offload_fsdp_param_and_grad(self.critic_module)
+
+        if self._is_offload_optimizer:
             offload_fsdp_param_and_grad(module=self.critic_module, offload_grad=self._is_offload_grad)
 
 

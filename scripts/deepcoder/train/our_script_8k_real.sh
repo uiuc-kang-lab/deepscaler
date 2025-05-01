@@ -20,7 +20,7 @@ done
 
 # Set default model path if not provided
 if [ -z "$MODEL_PATH" ]; then
-    MODEL_PATH="deepseek-ai/DeepSeek-R1-Distill-Qwen-14B"
+    MODEL_PATH="deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
 fi
 
 rllm_root=$(realpath "$(dirname "${BASH_SOURCE[0]}")"/../../../)
@@ -49,32 +49,36 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.actor.ulysses_sequence_parallel_size=2 \
     actor_rollout_ref.actor.entropy_coeff=0 \
     actor_rollout_ref.actor.grad_clip=1.0 \
-    actor_rollout_ref.actor.clip_ratio_low=0.2 \
-    actor_rollout_ref.actor.clip_ratio_high=0.28 \
     actor_rollout_ref.actor.fsdp_config.param_offload=False \
     actor_rollout_ref.actor.fsdp_config.optimizer_offload=False \
     actor_rollout_ref.rollout.compute_reward=True \
     actor_rollout_ref.rollout.tensor_model_parallel_size=2 \
     actor_rollout_ref.rollout.name=vllm \
     actor_rollout_ref.rollout.temperature=0.6 \
-    actor_rollout_ref.rollout.val_temperature=0.6 \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.8 \
-    actor_rollout_ref.rollout.n=8 \
-    actor_rollout_ref.rollout.n_val=2 \
+    actor_rollout_ref.rollout.n=4 \
     actor_rollout_ref.ref.fsdp_config.param_offload=True \
     actor_rollout_ref.actor.shuffle=False \
+    actor_rollout_ref.rollout.val_temperature=0.6 \
+    actor_rollout_ref.rollout.n_val=2 \
+    +data.shuffle=False \
     algorithm.kl_ctrl.kl_coef=0.001 \
     algorithm.mask_truncated_samples=True \
     trainer.default_local_dir=$rllm_root/checkpoints\
     trainer.critic_warmup=0 \
     trainer.logger=['console','wandb'] \
-    trainer.project_name='qwen-code' \
-    trainer.experiment_name='qwen-code-debug' \
-    +trainer.val_before_train=True \
+    trainer.project_name='code-rl' \
+    trainer.experiment_name='qwen-distill' \
+    +trainer.val_before_train=False \
     trainer.n_gpus_per_node=8 \
     trainer.nnodes=1 \
     trainer.save_freq=10 \
     trainer.test_freq=10 \
     trainer.default_hdfs_dir=null \
-    trainer.remove_previous_ckpt_in_save=False \
+    +trainer.remove_previous_ckpt_in_save=False \
+    +trainer.resume_mode='auto' \
+    +trainer.del_local_ckpt_after_load=False \
     trainer.total_epochs=100 "${@:1}"
+
+    # actor_rollout_ref.actor.clip_ratio_low=0.2 \
+    # actor_rollout_ref.actor.clip_ratio_high=0.28 \

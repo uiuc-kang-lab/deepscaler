@@ -26,6 +26,10 @@ __all__ = ["copy", "exists", "makedirs"]
 _HDFS_PREFIX = "hdfs://"
 
 
+def is_non_local(path):
+    return path.startswith(_HDFS_PREFIX)
+
+
 def _is_non_local(path):
     return path.startswith(_HDFS_PREFIX)
 
@@ -86,3 +90,16 @@ def copy_local_path_from_hdfs(src: str, cache_dir=None, filelock='.file.lock', v
         return local_path
     else:
         return src
+
+def copy_to_local(src: str, cache_dir=None, filelock='.file.lock', verbose=False) -> str:
+    """Copy src from hdfs to local if src is on hdfs or directly return src.
+    If cache_dir is None, we will use the default cache dir of the system. Note that this may cause conflicts if
+    the src name is the same between calls
+
+    Args:
+        src (str): a HDFS path of a local path
+
+    Returns:
+        a local path of the copied file
+    """
+    return copy_local_path_from_hdfs(src, cache_dir, filelock, verbose)
