@@ -108,7 +108,7 @@ def process_and_save(dataset, split, output_basename):
 
 def main():
     # # Load dataset
-    ds = load_dataset("chuxuan/RL-gen-code-train-rl")
+    ds = load_dataset("uiuc-kang-lab/code-100k-rl")
 
     # # Create output directory
     output_dir = "data"
@@ -128,6 +128,9 @@ def main():
     exclude_sources = ["lcbv5"]
     coding_data_validation = ds_val["train"].filter(lambda x: x["source"] not in exclude_sources)
     process_and_save(coding_data_validation, split="validation", output_basename=f"{output_dir}/chuxuan_coding_validation")
+    
+    print(f"Filtered dataset size: {len(coding_data_train)}")
+    print(f"Filtered validation dataset size: {len(coding_data_validation)}")
 
 if __name__ == "__main__":
     main()
